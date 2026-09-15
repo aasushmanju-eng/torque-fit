@@ -1,0 +1,279 @@
+type WorkoutSet = 
+ record {
+   reps: nat;
+   weightKg: float64;
+ };
+type Workout = 
+ record {
+   completedAtNs: int;
+   exercises: vec Exercise;
+   id: nat;
+   title: text;
+ };
+type Value = 
+ variant {
+   "bool": bool;
+   float: float64;
+   "int": int;
+   "nat": nat;
+   "null";
+   "text": text;
+ };
+type UserRole = 
+ variant {
+   admin;
+   guest;
+   user;
+ };
+type UserProfile = 
+ record {
+   age: nat;
+   gender: text;
+   goal: text;
+   weightKg: float64;
+ };
+type TransformationOutput = 
+ record {
+   body: blob;
+   headers: vec HttpHeader;
+   status: nat;
+ };
+type TransformationInput = 
+ record {
+   context: blob;
+   response: HttpRequestResult;
+ };
+type SearchResult = 
+ record {
+   "principal": principal;
+   profile: Profile;
+ };
+type Reward = 
+ record {
+   badge: text;
+   earnedAtNs: int;
+   id: nat;
+   points: nat;
+ };
+type Result__1 = 
+ record {
+   hasMore: bool;
+   rows: vec vec Cell;
+ };
+type Result_2 = 
+ variant {
+   err: Error;
+   ok;
+ };
+type Result_1 = 
+ variant {
+   err: text;
+   ok: FoodProduct;
+ };
+type Result = 
+ variant {
+   err: text;
+   ok;
+ };
+type RankTier = 
+ variant {
+   bronze;
+   diamond;
+   gold;
+   platinum;
+   silver;
+ };
+type RankInfo = 
+ record {
+   level: nat;
+   tier: RankTier;
+   xp: nat;
+   xpToNextLevel: nat;
+ };
+type Profile = 
+ record {
+   activityLevel: ActivityLevel;
+   age: nat;
+   gender: Gender;
+   goal: FitnessGoal;
+   heightCm: float64;
+   name: text;
+   targetSport: text;
+   weightKg: float64;
+ };
+type HttpRequestResult = 
+ record {
+   body: blob;
+   headers: vec HttpHeader;
+   status: nat;
+ };
+type HttpHeader = 
+ record {
+   name: text;
+   value: text;
+ };
+type Gender = 
+ variant {
+   female;
+   male;
+   other;
+ };
+type FriendView = 
+ record {
+   challengeProgress: vec Challenge;
+   name: text;
+   "principal": principal;
+   rank: RankInfo;
+ };
+type FriendRequestStatus = 
+ variant {
+   accepted;
+   declined;
+   pending;
+ };
+type FriendRequest = 
+ record {
+   from: principal;
+   status: FriendRequestStatus;
+   to: principal;
+ };
+type FoodProduct = 
+ record {
+   calories: float64;
+   carbs: float64;
+   code: text;
+   fat: float64;
+   name: text;
+   protein: float64;
+ };
+type FoodLogEntry = 
+ record {
+   id: nat;
+   loggedAtNs: int;
+   product: FoodProduct;
+   servingSize: float64;
+ };
+type FitnessGoal = 
+ variant {
+   gain;
+   lose;
+   maintain;
+ };
+type Exercise = 
+ record {
+   name: text;
+   sets: vec WorkoutSet;
+ };
+type Error = 
+ variant {
+   AmbiguousAttribute: record {
+                         field: text;
+                         sources: vec text;
+                       };
+   FrontendOriginMismatch: record {
+                             expected: vec text;
+                             got: text;
+                           };
+   FrontendOriginsNotConfigured;
+   MalformedCandid;
+   MissingField: text;
+   MixedSsoSources: record {
+                      otherKeys: vec text;
+                      ssoKeys: vec text;
+                    };
+   NoAttributes;
+   Stale: record {ageNs: nat;};
+   UnknownNonce;
+   UntrustedSsoSource: record {domain: text;};
+ };
+type DietTarget = 
+ record {
+   calories: nat;
+   carbs: nat;
+   fat: nat;
+   protein: nat;
+ };
+type DailyFoodLog = 
+ record {
+   entries: vec FoodLogEntry;
+   totalCalories: float64;
+   totalCarbs: float64;
+   totalFat: float64;
+   totalProtein: float64;
+ };
+type CoachType = 
+ variant {
+   basketball;
+   cricket;
+   diet;
+   football;
+   gym;
+   swimming;
+ };
+type ChatResponse = record {reply: text;};
+type ChatRequest = 
+ record {
+   coach: CoachType;
+   message: text;
+   profile: UserProfile;
+ };
+type ChallengeStatus = 
+ variant {
+   active;
+   completed;
+ };
+type Challenge = 
+ record {
+   description: text;
+   id: nat;
+   progress: nat;
+   rewardBadge: text;
+   rewardPoints: nat;
+   status: ChallengeStatus;
+   target: nat;
+   title: text;
+ };
+type Cell = 
+ record {
+   name: text;
+   value: Value;
+ };
+type ActivityLevel = 
+ variant {
+   active;
+   light;
+   moderate;
+   sedentary;
+   veryActive;
+ };
+service : {
+  _initialize_access_control: () -> ();
+  _internet_identity_sign_in_finish: () -> (Result_2);
+  _internet_identity_sign_in_start: () -> (blob);
+  assignCallerUserRole: (user: principal, role: UserRole) -> ();
+  chat: (req: ChatRequest) -> (ChatResponse);
+  deleteFoodEntry: (entryId: nat) -> ();
+  execute: (qJson: text) -> (Result__1) query;
+  getApiDoc: () -> (text) query;
+  getCallerUserRole: () -> (UserRole) query;
+  getChallenges: () -> (vec Challenge) query;
+  getDailyFoodLog: () -> (DailyFoodLog) query;
+  getDietTarget: () -> (DietTarget) query;
+  getFriendRequests: () -> (vec FriendRequest) query;
+  getFriends: () -> (vec FriendView) query;
+  getProfile: () -> (opt Profile) query;
+  getRankInfo: () -> (RankInfo) query;
+  getRewards: () -> (vec Reward) query;
+  getWorkouts: () -> (vec Workout) query;
+  isCallerAdmin: () -> (bool) query;
+  logFood: (product: FoodProduct, servingSize: float64) -> ();
+  logWorkout: (title: text, exercises: vec Exercise) -> ();
+  respondToFriendRequest: (from: principal, accept: bool) -> (Result);
+  schema: () -> (text) query;
+  searchFoodByBarcode: (barcode: text) -> (Result_1);
+  searchUsers: (name: text) -> (vec SearchResult) query;
+  sendFriendRequest: (to: principal) -> (Result);
+  transform: (input: TransformationInput) -> (TransformationOutput) query;
+  updateFoodEntry: (entryId: nat, servingSize: float64) -> ();
+  updateProfile: (profile: Profile) -> ();
+}

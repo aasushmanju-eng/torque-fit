@@ -1,0 +1,22 @@
+{
+  "overview": "Torque Fit is a comprehensive gym and fitness app with a personalized AI diet coach, AI gym mentor, sport-specific AI coaches, a calorie camera that logs meals from real food data, workout tracking, a rank system, challenges with rewards, and a friends system.",
+  "features": [
+    "Personalized AI diet coach and gym mentor based on weight, age, gender, and goals",
+    "Sport-specific AI coaches for cricket, football, and more",
+    "Calorie camera that captures meal photos and logs calories and macros from real food data",
+    "Workout tracking with exercise, sets, reps, and weight history",
+    "Rank system with XP and named tiers",
+    "Challenges with rewards and badges",
+    "Friends system to connect with other users"
+  ],
+  "category": "fitness",
+  "tags": [
+    "fitness",
+    "gym",
+    "ai-coach",
+    "nutrition",
+    "workout",
+    "social"
+  ],
+  "last_updated": "2026-09-15T10:29:27.378Z"
+}
