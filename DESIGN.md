@@ -2,28 +2,29 @@
 
 ## Direction
 
-Torque Fit — a dark, high-energy gym/fitness app with a near-black ChatGPT-style surface and electric neon blue accents.
+Torque Fit — a dark, high-energy gym/fitness app with a near-black surface and electric neon blue accents, refined into a premium paid-app feel.
 
 ## Tone
 
-Bold, technical, athletic — a "performance instrument" aesthetic: brutally minimal dark surfaces with one dominant neon blue accent used sparingly for energy and focus.
+Bold, technical, athletic — a "precision instrument" aesthetic: brutally minimal near-black surfaces with one disciplined neon blue accent used sparingly for energy and focus.
 
 ## Differentiation
 
-Neon blue as a single disciplined accent on near-black surfaces, with Space Grotesk display type and mono numeric stats, reads like a premium performance dashboard rather than a generic fitness app.
+Neon blue as a single disciplined accent on near-black surfaces, with Space Grotesk display type, mono numeric stats, and a choreographed motion system — reads like a premium performance dashboard, not a generic fitness app.
 
 ## Color Palette
 
 | Token      | OKLCH         | Role                              |
 | ---------- | ------------- | --------------------------------- |
-| background | 0.13 0.012 250| near-black app canvas             |
+| background | 0.12 0.012 250| near-black app canvas             |
 | foreground | 0.93 0.01 250 | primary text                      |
-| card       | 0.165 0.014 250| elevated surface panels          |
-| primary    | 0.62 0.19 240 | neon blue accent / CTAs           |
-| accent     | 0.62 0.19 240 | highlights, active states         |
+| card       | 0.16 0.014 250| elevated surface panels           |
+| popover    | 0.185 0.016 250| floating menus / dialogs         |
+| primary    | 0.66 0.2 240  | neon blue accent / CTAs           |
+| accent     | 0.66 0.2 240  | highlights, active states         |
 | muted      | 0.2 0.015 250 | secondary surfaces                |
-| success    | 0.62 0.17 150 | calories / macro on-target        |
-| warning    | 0.75 0.15 85  | challenge / streak indicators     |
+| success    | 0.64 0.17 150 | calories / macro on-target        |
+| warning    | 0.76 0.15 85  | challenge / streak indicators     |
 | destructive| 0.58 0.2 25   | errors, delete                    |
 
 ## Typography
@@ -35,7 +36,7 @@ Neon blue as a single disciplined accent on near-black surfaces, with Space Grot
 
 ## Elevation & Depth
 
-Layered dark surfaces (background → card → popover) with subtle borders and low-key `shadow-subtle`/`shadow-elevated`; depth comes from surface layering, not glow.
+Layered dark surfaces (background → card → popover) with subtle borders and a refined shadow hierarchy (`shadow-card`/`shadow-elevated`/`shadow-lift`); depth from surface layering plus precise hover lifts, not glow.
 
 ## Structural Zones
 
@@ -48,20 +49,22 @@ Layered dark surfaces (background → card → popover) with subtle borders and 
 
 ## Spacing & Rhythm
 
-Generous section gaps (`gap-6 md:gap-8`), consistent card padding (`p-5 md:p-6`), tight micro-spacing inside stats; grid of cards with consistent gutters.
+Generous section gaps (`gap-6 md:gap-8`), consistent card padding (`p-5 md:p-6`), tight micro-spacing inside stats; consistent gutters with `--radius` bumped to 0.875rem for a softer premium edge.
 
 ## Component Patterns
 
-- Buttons: `rounded-lg`, primary neon blue for CTAs, muted secondary, subtle hover lift
-- Cards: `rounded-xl`, card background, `shadow-subtle`, border-border
-- Badges: `rounded-full` pills, neon blue for rank/XP, success for on-target, warning for streaks
-- Progress: linear bars + circular donut for calories/macros, neon blue fill
+- Buttons: `rounded-lg`, neon primary for CTAs, muted secondary, `hover-lift` + `press` feedback
+- Cards: `rounded-xl`, card background, `shadow-card`, `hover-lift` on hover, `focus-ring` for keyboard
+- Badges: `rounded-full` pills, neon for rank/XP, success for on-target, warning for streaks
+- Progress: linear bars + circular donut for calories/macros, neon fill, shimmer skeleton loading
 
 ## Motion
 
-- Entrance: `animate-fade-in` (0.4s) on page/section mount
-- Hover: `transition-smooth` color/opacity shifts on buttons and cards
-- Decorative: `animate-pulse-soft` on live/active indicators only
+- Entrance: `animate-rise` / `animate-slide-up` on page/section mount; `stagger` for card grids
+- Hover: `hover-lift` (translateY + shadow + border) and `press` scale on interactive elements
+- Focus: `focus-ring` neon ring on all focusable elements
+- Decorative: `animate-pulse-soft` on live/active indicators, `animate-shimmer` on skeletons
+- Reduced motion: all entrance animations disabled under `prefers-reduced-motion`
 
 ## Constraints
 
@@ -69,7 +72,8 @@ Generous section gaps (`gap-6 md:gap-8`), consistent card padding (`p-5 md:p-6`)
 - Neon blue is the only saturated accent — use sparingly for highlights and active states
 - Token-only styling; never raw hex/rgb in components
 - AA+ contrast maintained on all text/surfaces
+- Every interactive element has a transition, hover state, and visible focus ring
 
 ## Signature Detail
 
-Mono JetBrains numeral readouts for calories, macros, and XP against neon blue progress fills — turning data into the hero of the interface.
+Mono JetBrains numeral readouts for calories, macros, and XP against neon blue progress fills — turning data into the hero of the interface, elevated by a choreographed rise-in motion system.

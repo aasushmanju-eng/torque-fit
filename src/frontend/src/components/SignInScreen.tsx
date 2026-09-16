@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { LEGAL_LINKS } from "@/lib/types";
 import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { Dumbbell } from "lucide-react";
 
@@ -40,6 +41,22 @@ export function SignInScreen() {
           </p>
         </div>
       </div>
+
+      <nav
+        className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2"
+        aria-label="Legal links"
+      >
+        {LEGAL_LINKS.map((item) => (
+          <a
+            key={item.path}
+            href={item.path}
+            data-ocid={`signin_${item.path.replace("/", "")}`}
+            className="focus-ring text-xs text-muted-foreground transition-fast hover:text-primary"
+          >
+            {item.label}
+          </a>
+        ))}
+      </nav>
     </div>
   );
 }

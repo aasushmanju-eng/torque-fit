@@ -3,6 +3,13 @@ type WorkoutSet =
    reps: nat;
    weightKg: float64;
  };
+type WorkoutReminder = 
+ record {
+   days: vec nat;
+   id: nat;
+   timeMinutes: nat;
+   title: text;
+ };
 type Workout = 
  record {
    completedAtNs: int;
@@ -201,6 +208,11 @@ type DailyFoodLog =
    totalFat: float64;
    totalProtein: float64;
  };
+type Conversation = 
+ record {
+   friend: principal;
+   messages: vec ChatMessage;
+ };
 type CoachType = 
  variant {
    basketball;
@@ -217,10 +229,25 @@ type ChatRequest =
    message: text;
    profile: UserProfile;
  };
+type ChatMessage = 
+ record {
+   from: principal;
+   id: nat;
+   sentAtNs: int;
+   "text": text;
+   to: principal;
+ };
 type ChallengeStatus = 
  variant {
    active;
    completed;
+ };
+type ChallengeProof = 
+ record {
+   challengeId: nat;
+   id: nat;
+   proofRef: text;
+   submittedAtNs: int;
  };
 type Challenge = 
  record {
@@ -250,13 +277,17 @@ service : {
   _initialize_access_control: () -> ();
   _internet_identity_sign_in_finish: () -> (Result_2);
   _internet_identity_sign_in_start: () -> (blob);
+  addWorkoutReminder: (days: vec nat, timeMinutes: nat, title: text) -> (nat);
   assignCallerUserRole: (user: principal, role: UserRole) -> ();
   chat: (req: ChatRequest) -> (ChatResponse);
   deleteFoodEntry: (entryId: nat) -> ();
   execute: (qJson: text) -> (Result__1) query;
   getApiDoc: () -> (text) query;
   getCallerUserRole: () -> (UserRole) query;
+  getChallengeProofs: (challengeId: nat) -> (vec ChallengeProof) query;
   getChallenges: () -> (vec Challenge) query;
+  getConversation: (friend: principal) -> (vec ChatMessage) query;
+  getConversations: () -> (vec Conversation) query;
   getDailyFoodLog: () -> (DailyFoodLog) query;
   getDietTarget: () -> (DietTarget) query;
   getFriendRequests: () -> (vec FriendRequest) query;
@@ -266,14 +297,20 @@ service : {
   getRewards: () -> (vec Reward) query;
   getWorkouts: () -> (vec Workout) query;
   isCallerAdmin: () -> (bool) query;
+  listWorkoutReminders: () -> (vec WorkoutReminder) query;
   logFood: (product: FoodProduct, servingSize: float64) -> ();
   logWorkout: (title: text, exercises: vec Exercise) -> ();
+  removeWorkoutReminder: (id: nat) -> (Result);
   respondToFriendRequest: (from: principal, accept: bool) -> (Result);
   schema: () -> (text) query;
   searchFoodByBarcode: (barcode: text) -> (Result_1);
   searchUsers: (name: text) -> (vec SearchResult) query;
   sendFriendRequest: (to: principal) -> (Result);
+  sendMessage: (to: principal, "text": text) -> (Result);
+  submitChallengeProof: (challengeId: nat, proofRef: text) -> (Result);
   transform: (input: TransformationInput) -> (TransformationOutput) query;
   updateFoodEntry: (entryId: nat, servingSize: float64) -> ();
   updateProfile: (profile: Profile) -> ();
+  updateWorkoutReminder: (id: nat, days: vec nat, timeMinutes: nat, title:
+   text) -> (Result);
 }

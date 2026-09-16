@@ -86,7 +86,7 @@ function MacroBar({
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium">{label}</span>
-        <span className="text-muted-foreground">
+        <span className="font-mono text-muted-foreground">
           {Math.round(current)}
           <span className="text-xs">
             {" "}
@@ -96,7 +96,7 @@ function MacroBar({
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-primary/15">
         <div
-          className={`h-full rounded-full transition-all ${colorClass}`}
+          className={`h-full rounded-full transition-all duration-700 ${colorClass}`}
           style={{ width: `${value}%` }}
         />
       </div>
@@ -225,7 +225,7 @@ function ChallengeCard({
       : 0;
 
   return (
-    <Card data-ocid="challenge_card" className="gap-4">
+    <Card data-ocid="challenge_card" className="gap-4 hover-lift focus-ring">
       <CardContent className="flex flex-col gap-3 px-6">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-1">
@@ -239,7 +239,7 @@ function ChallengeCard({
         </div>
         <Progress value={value} data-ocid="challenge_progress" />
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>
+          <span className="font-mono">
             {progress.toString()} / {target.toString()}
           </span>
           <span className="text-primary">{rewardBadge}</span>
@@ -269,7 +269,7 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-6">
       {/* Hero */}
-      <section className="flex flex-col gap-1">
+      <section className="flex flex-col gap-1 animate-rise">
         <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
           Your <span className="text-gradient-neon">daily performance</span>
         </h1>
@@ -282,7 +282,7 @@ export default function Dashboard() {
       <section className="grid gap-6 lg:grid-cols-5">
         <Card
           data-ocid="calorie_card"
-          className="bg-glow-primary lg:col-span-2"
+          className="bg-glow-primary lg:col-span-2 animate-rise"
         >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -294,7 +294,7 @@ export default function Dashboard() {
           <CardContent>
             {loading ? (
               <div className="flex flex-col items-center gap-4">
-                <Skeleton className="size-52 rounded-full" />
+                <Skeleton className="size-52 animate-shimmer rounded-full" />
               </div>
             ) : target && log ? (
               <CalorieGauge
@@ -302,14 +302,26 @@ export default function Dashboard() {
                 target={Number(target.calories)}
               />
             ) : (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                Set your diet target to see today&apos;s progress.
-              </p>
+              <div
+                data-ocid="calorie_empty_state"
+                className="flex flex-col items-center gap-3 py-10 text-center"
+              >
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Flame className="size-6" aria-hidden="true" />
+                </span>
+                <p className="max-w-xs text-sm text-muted-foreground">
+                  Set your diet target to see today&apos;s calorie progress.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
 
-        <Card data-ocid="macro_card" className="lg:col-span-3">
+        <Card
+          data-ocid="macro_card"
+          className="lg:col-span-3 animate-rise"
+          style={{ animationDelay: "0.06s" }}
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="size-4 text-primary" aria-hidden="true" />
@@ -325,8 +337,8 @@ export default function Dashboard() {
                 {Array.from({ length: 3 }, (_, i) => `macro-skeleton-${i}`).map(
                   (id) => (
                     <div key={id} className="flex flex-col gap-1.5">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-2 w-full" />
+                      <Skeleton className="h-4 w-24 animate-shimmer" />
+                      <Skeleton className="h-2 w-full animate-shimmer" />
                     </div>
                   ),
                 )}
@@ -356,9 +368,17 @@ export default function Dashboard() {
                 />
               </div>
             ) : (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                Log your meals to see your macro breakdown.
-              </p>
+              <div
+                data-ocid="macro_empty_state"
+                className="flex flex-col items-center gap-3 py-10 text-center"
+              >
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Target className="size-6" aria-hidden="true" />
+                </span>
+                <p className="max-w-xs text-sm text-muted-foreground">
+                  Log your meals to see your macro breakdown.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -366,7 +386,11 @@ export default function Dashboard() {
 
       {/* Rank + challenges */}
       <section className="grid gap-6 lg:grid-cols-5">
-        <Card data-ocid="rank_card" className="lg:col-span-2">
+        <Card
+          data-ocid="rank_card"
+          className="lg:col-span-2 animate-rise"
+          style={{ animationDelay: "0.12s" }}
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Medal className="size-4 text-primary" aria-hidden="true" />
@@ -379,8 +403,8 @@ export default function Dashboard() {
           <CardContent>
             {loading ? (
               <div className="flex flex-col gap-3">
-                <Skeleton className="h-9 w-48" />
-                <Skeleton className="h-2 w-full" />
+                <Skeleton className="h-9 w-48 animate-shimmer" />
+                <Skeleton className="h-2 w-full animate-shimmer" />
               </div>
             ) : rank ? (
               <RankProgress
@@ -390,14 +414,26 @@ export default function Dashboard() {
                 xpToNextLevel={rank.xpToNextLevel}
               />
             ) : (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                Complete challenges to earn XP and rank up.
-              </p>
+              <div
+                data-ocid="rank_empty_state"
+                className="flex flex-col items-center gap-3 py-10 text-center"
+              >
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Medal className="size-6" aria-hidden="true" />
+                </span>
+                <p className="max-w-xs text-sm text-muted-foreground">
+                  Complete challenges to earn XP and rank up.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
 
-        <Card data-ocid="challenges_card" className="lg:col-span-3">
+        <Card
+          data-ocid="challenges_card"
+          className="lg:col-span-3 animate-rise"
+          style={{ animationDelay: "0.18s" }}
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="size-4 text-primary" aria-hidden="true" />
@@ -415,33 +451,34 @@ export default function Dashboard() {
                   (_, i) => `challenge-skeleton-${i}`,
                 ).map((id) => (
                   <div key={id} className="flex flex-col gap-2">
-                    <Skeleton className="h-4 w-40" />
-                    <Skeleton className="h-2 w-full" />
+                    <Skeleton className="h-4 w-40 animate-shimmer" />
+                    <Skeleton className="h-2 w-full animate-shimmer" />
                   </div>
                 ))}
               </div>
             ) : activeChallenges.length > 0 ? (
-              activeChallenges.map((c) => (
-                <ChallengeCard
-                  key={c.id.toString()}
-                  title={c.title}
-                  description={c.description}
-                  progress={c.progress}
-                  target={c.target}
-                  rewardPoints={c.rewardPoints}
-                  rewardBadge={c.rewardBadge}
-                />
-              ))
+              <div className="flex flex-col gap-4 stagger">
+                {activeChallenges.map((c) => (
+                  <ChallengeCard
+                    key={c.id.toString()}
+                    title={c.title}
+                    description={c.description}
+                    progress={c.progress}
+                    target={c.target}
+                    rewardPoints={c.rewardPoints}
+                    rewardBadge={c.rewardBadge}
+                  />
+                ))}
+              </div>
             ) : (
               <div
                 data-ocid="challenges_empty_state"
-                className="flex flex-col items-center gap-2 py-8 text-center"
+                className="flex flex-col items-center gap-3 py-8 text-center"
               >
-                <Trophy
-                  className="size-8 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <p className="text-sm text-muted-foreground">
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Trophy className="size-6" aria-hidden="true" />
+                </span>
+                <p className="max-w-xs text-sm text-muted-foreground">
                   No active challenges right now. Check back soon.
                 </p>
               </div>
@@ -451,9 +488,9 @@ export default function Dashboard() {
       </section>
 
       {/* Quick actions */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3 animate-rise">
         <h2 className="font-display text-lg font-semibold">Quick actions</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 stagger">
           {QUICK_ACTIONS.map((action) => {
             const Icon = action.icon;
             return (
@@ -461,9 +498,9 @@ export default function Dashboard() {
                 key={action.path}
                 to={action.path}
                 data-ocid={`quick_action_${action.path.replace("/", "")}`}
-                className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm transition-smooth hover:border-primary/40 hover:bg-accent"
+                className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm transition-smooth hover:border-primary/40 hover:bg-accent hover-lift focus-ring"
               >
-                <span className="flex size-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <span className="flex size-10 items-center justify-center rounded-lg bg-primary/15 text-primary transition-transform duration-300 group-hover:scale-110">
                   <Icon className="size-5" aria-hidden="true" />
                 </span>
                 <div className="flex flex-col gap-0.5">

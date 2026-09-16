@@ -46,6 +46,64 @@ function TypingIndicator() {
   );
 }
 
+function MessageRow({
+  message,
+  onRetry,
+}: {
+  message: ChatMessage;
+  onRetry: (message: ChatMessage) => void;
+}) {
+  const isUser = message.role === "user";
+  return (
+    <div
+      data-ocid={`chat_message.${message.role}`}
+      className={cn(
+        "flex w-full animate-rise gap-3",
+        isUser ? "justify-end" : "justify-start",
+      )}
+    >
+      {!isUser && (
+        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+          <Bot className="size-4" aria-hidden="true" />
+        </span>
+      )}
+      <div
+        className={cn(
+          "max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed",
+          isUser
+            ? "rounded-br-sm bg-primary text-primary-foreground"
+            : "rounded-bl-sm border border-border bg-background text-foreground",
+        )}
+      >
+        {message.content}
+        {message.failed && (
+          <div className="mt-2 flex items-center gap-2 border-t border-destructive/30 pt-2">
+            <span className="text-xs text-destructive">
+              Couldn&apos;t reach the coach.
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-ocid="chat_retry_button"
+              className="focus-ring press"
+              onClick={() => onRetry(message)}
+            >
+              <RotateCcw className="size-3.5" aria-hidden="true" />
+              Retry
+            </Button>
+          </div>
+        )}
+      </div>
+      {isUser && (
+        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+          <User className="size-4" aria-hidden="true" />
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function ChatWindow({
   onSend,
   suggestedPrompts,
@@ -103,13 +161,12 @@ export function ChatWindow({
     void deliver(text);
   }
 
-  function retry() {
-    const failed = messages.find((m) => m.failed);
-    if (!failed || pending) return;
+  function retry(message: ChatMessage) {
+    if (pending) return;
     setMessages((prev) =>
-      prev.map((m) => (m.id === failed.id ? { ...m, failed: false } : m)),
+      prev.map((m) => (m.id === message.id ? { ...m, failed: false } : m)),
     );
-    void deliver(failed.content);
+    void deliver(message.content);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -127,7 +184,7 @@ export function ChatWindow({
       className="flex h-[calc(100vh-16rem)] min-h-[28rem] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+      <div className="flex items-center gap-3 border-b border-border bg-background/40 px-5 py-4">
         <span className="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
           <Bot className="size-5" aria-hidden="true" />
         </span>
@@ -143,10 +200,10 @@ export function ChatWindow({
       <div className="flex-1 overflow-y-auto px-5 py-5">
         {showEmpty ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+            <span className="flex size-14 animate-scale-in items-center justify-center rounded-2xl bg-primary/15 text-primary">
               <Sparkles className="size-7" aria-hidden="true" />
             </span>
-            <div className="flex flex-col gap-1">
+            <div className="flex animate-rise flex-col gap-1">
               <h3 className="font-display text-lg font-semibold">
                 {emptyTitle}
               </h3>
@@ -171,7 +228,7 @@ export function ChatWindow({
                     ]);
                     void deliver(prompt);
                   }}
-                  className="rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-left text-xs font-medium text-primary transition-smooth hover:bg-primary/20"
+                  className="rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-left text-xs font-medium text-primary transition-fast hover:-translate-y-0.5 hover:bg-primary/20 hover:shadow-[0_6px_16px_-8px_oklch(0.66_0.2_240/0.5)] focus-ring press"
                 >
                   {prompt}
                 </button>
@@ -181,44 +238,19 @@ export function ChatWindow({
         ) : (
           <div className="flex flex-col gap-4">
             {messages.map((msg) => (
-              <div
-                key={msg.id}
-                data-ocid={`chat_message.${msg.role}`}
-                className={cn(
-                  "flex w-full gap-3",
-                  msg.role === "user" ? "justify-end" : "justify-start",
-                )}
-              >
-                {msg.role === "assistant" && (
-                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                    <Bot className="size-4" aria-hidden="true" />
-                  </span>
-                )}
-                <div
-                  className={cn(
-                    "max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed",
-                    msg.role === "user"
-                      ? "rounded-br-sm bg-primary text-primary-foreground"
-                      : "rounded-bl-sm border border-border bg-background text-foreground",
-                  )}
-                >
-                  {msg.content}
-                </div>
-                {msg.role === "user" && (
-                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-                    <User className="size-4" aria-hidden="true" />
-                  </span>
-                )}
-              </div>
+              <MessageRow key={msg.id} message={msg} onRetry={retry} />
             ))}
 
             {pending && (
-              <div className="flex w-full justify-start gap-3">
+              <div className="flex w-full animate-rise justify-start gap-3">
                 <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
                   <Bot className="size-4" aria-hidden="true" />
                 </span>
-                <div className="rounded-2xl rounded-bl-sm border border-border bg-background px-4 py-3">
+                <div className="flex items-center gap-3 rounded-2xl rounded-bl-sm border border-border bg-background px-4 py-3">
                   <TypingIndicator />
+                  <span className="text-xs text-muted-foreground">
+                    Coach is thinking…
+                  </span>
                 </div>
               </div>
             )}
@@ -226,7 +258,7 @@ export function ChatWindow({
             {error && (
               <div
                 data-ocid="chat_error"
-                className="flex items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3"
+                className="flex animate-rise items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3"
               >
                 <div className="flex items-center gap-2.5 text-sm text-destructive-foreground">
                   <AlertTriangle
@@ -240,7 +272,11 @@ export function ChatWindow({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={retry}
+                  className="focus-ring press"
+                  onClick={() => {
+                    const failed = messages.find((m) => m.failed);
+                    if (failed) retry(failed);
+                  }}
                 >
                   <RotateCcw className="size-3.5" aria-hidden="true" />
                   Retry
@@ -253,7 +289,7 @@ export function ChatWindow({
       </div>
 
       {/* Composer */}
-      <div className="border-t border-border px-5 py-4">
+      <div className="border-t border-border bg-background/40 px-5 py-4">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -268,14 +304,14 @@ export function ChatWindow({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             rows={1}
-            className="min-h-11 max-h-40 resize-none"
-            aria-label="Message your diet coach"
+            className="min-h-11 max-h-40 resize-none focus-ring"
+            aria-label="Message your coach"
           />
           <Button
             data-ocid="chat_send_button"
             type="submit"
             size="icon"
-            className="h-11 w-11 shrink-0"
+            className="h-11 w-11 shrink-0 focus-ring press"
             disabled={!input.trim() || pending}
             aria-label="Send message"
           >

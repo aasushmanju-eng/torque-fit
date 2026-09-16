@@ -42,24 +42,24 @@ function ProfileSkeleton() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
-        <Skeleton className="size-11 rounded-xl" />
+        <Skeleton className="size-11 animate-shimmer rounded-xl" />
         <div className="flex flex-col gap-2">
-          <Skeleton className="h-7 w-40" />
-          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-7 w-40 animate-shimmer" />
+          <Skeleton className="h-4 w-64 animate-shimmer" />
         </div>
       </div>
       <Card>
         <CardContent className="flex flex-col gap-6">
           <div className="flex items-center gap-4">
-            <Skeleton className="size-14 rounded-2xl" />
+            <Skeleton className="size-14 animate-shimmer rounded-2xl" />
             <div className="flex flex-col gap-2">
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-5 w-32 animate-shimmer" />
+              <Skeleton className="h-4 w-48 animate-shimmer" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 7 }, (_, i) => `stat-${i}`).map((id) => (
-              <Skeleton key={id} className="h-16 rounded-lg" />
+              <Skeleton key={id} className="h-16 animate-shimmer rounded-lg" />
             ))}
           </div>
         </CardContent>
@@ -86,7 +86,7 @@ function ProfileSummary({
   ];
 
   return (
-    <Card className="bg-glow-primary">
+    <Card className="bg-glow-primary animate-rise">
       <CardContent className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -107,17 +107,18 @@ function ProfileSummary({
             variant="outline"
             onClick={onEdit}
             data-ocid="profile_edit_button"
+            className="hover-lift focus-ring"
           >
             <Pencil className="size-4" aria-hidden="true" />
             Edit
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 stagger">
           {stats.map((s) => (
             <div
               key={s.label}
-              className="rounded-lg border border-border bg-card px-4 py-3"
+              className="rounded-lg border border-border bg-card px-4 py-3 transition-smooth hover:border-primary/30 hover:bg-accent"
             >
               <p className="text-xs text-muted-foreground">{s.label}</p>
               <p className="mt-1 font-display text-base font-semibold">
@@ -167,7 +168,7 @@ export default function Profile() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 animate-rise">
         <span className="flex size-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
           <Medal className="size-6" aria-hidden="true" />
         </span>
@@ -182,7 +183,7 @@ export default function Profile() {
       </div>
 
       {editing && draft ? (
-        <Card className="bg-glow-primary">
+        <Card className="bg-glow-primary animate-rise">
           <CardContent className="flex flex-col gap-5">
             <div className="flex flex-col gap-1">
               <h2 className="font-display text-xl font-semibold">
@@ -214,6 +215,7 @@ export default function Profile() {
                 variant="ghost"
                 onClick={cancelEdit}
                 data-ocid="profile_cancel_button"
+                className="focus-ring"
               >
                 <X className="size-4" aria-hidden="true" />
                 Cancel
@@ -223,6 +225,7 @@ export default function Profile() {
                 onClick={handleSave}
                 disabled={updateProfile.isPending}
                 data-ocid="profile_save_button"
+                className="hover-lift focus-ring"
               >
                 <Save className="size-4" aria-hidden="true" />
                 {updateProfile.isPending ? "Saving…" : "Save changes"}

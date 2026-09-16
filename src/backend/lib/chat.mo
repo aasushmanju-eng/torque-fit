@@ -3,9 +3,9 @@ import ChatApi "mo:caffeineai-inference-client/Apis/ChatApi";
 import ChatCompletionRequest "mo:caffeineai-inference-client/Models/ChatCompletionRequest";
 import ChatCompletionRequestMessageOneOf "mo:caffeineai-inference-client/Models/ChatCompletionRequestMessageOneOf";
 import ChatCompletionRequestMessageOneOf2 "mo:caffeineai-inference-client/Models/ChatCompletionRequestMessageOneOf2";
-import Runtime "mo:core/Runtime";
 import Float "mo:core/Float";
 import Nat "mo:core/Nat";
+import Prim "mo:⛔";
 import Types "../types/chat";
 
 module {
@@ -108,25 +108,47 @@ module {
   };
 
   public func runChat<system>(req : Types.ChatRequest) : async* Types.ChatResponse {
-    let config = fromEnv<system>();
-    let systemMessage = ChatCompletionRequestMessageOneOf.JSON.init({
-      content = #string(buildSystemPrompt(req.coach, req.profile));
-      role = #system_;
-    });
-    let userMessage = ChatCompletionRequestMessageOneOf2.JSON.init({
-      content = #string(req.message);
-      role = #user;
-    });
-    let chatReq = ChatCompletionRequest.JSON.init({
-      messages = [#system_(systemMessage), #user(userMessage)];
-      model = "router";
-    });
-    let resp = await* ChatApi.createChatCompletion(config, chatReq);
-    if (resp.choices.size() == 0) {
-      Runtime.trap("Inference returned no choices");
+    // PRE-CHECK the inference API key BEFORE calling fromEnv<system>().
+    // fromEnv calls Runtime.trap("CAFFEINE_INFERENCE_API_KEY is not set") when
+    // the env var is missing, and Runtime.trap is a hard system-level trap
+    // (ic0.trap) that Motoko's try/catch CANNOT intercept — it propagates as
+    // an opaque CanisterCalledTrap reject. So we read the env var directly via
+    // Prim.envVar (a non-trapping path) and, if it is absent, return a friendly
+    // ChatResponse immediately WITHOUT ever calling fromEnv. In production the
+    // platform provisions the key, so this branch is only hit locally; the
+    // normal inference path runs unchanged when the key is present.
+    if (Prim.envVar<system>("CAFFEINE_INFERENCE_API_KEY") == null) {
+      return { reply = "I couldn't reach the inference service right now. Please try again in a moment." };
     };
-    let reply = resp.choices[0].message.content
-      ?? Runtime.trap("Inference returned no text content");
-    { reply };
+    // The key is present, so fromEnv<system>() will not trap. The remaining
+    // failure modes (network, auth, service, decode) surface as async rejects
+    // that try/catch CAN catch, so wrap the inference call to keep returning a
+    // friendly retry path instead of an opaque canister reject.
+    try {
+      let config = fromEnv<system>();
+      let systemMessage = ChatCompletionRequestMessageOneOf.JSON.init({
+        content = #string(buildSystemPrompt(req.coach, req.profile));
+        role = #system_;
+      });
+      let userMessage = ChatCompletionRequestMessageOneOf2.JSON.init({
+        content = #string(req.message);
+        role = #user;
+      });
+      let chatReq = ChatCompletionRequest.JSON.init({
+        messages = [#system_(systemMessage), #user(userMessage)];
+        model = "router";
+      });
+      let resp = await* ChatApi.createChatCompletion(config, chatReq);
+      if (resp.choices.size() == 0) {
+        return { reply = "I couldn't reach the inference service right now. Please try again." };
+      };
+      let reply = switch (resp.choices[0].message.content) {
+        case (?c) c;
+        case null "I couldn't reach the inference service right now. Please try again.";
+      };
+      { reply };
+    } catch (_err) {
+      { reply = "I couldn't reach the inference service right now. Please try again in a moment." };
+    };
   };
 };

@@ -168,3 +168,163 @@ it("isolates friend data between callers", async () => {
   expect(friends[0].name).toBe("Bob Builder");
   expect(friends[0].rank.level).toBeGreaterThan(0n);
 });
+
+it("round-trips a workout reminder through add, list, update, and remove", async () => {
+  actor.setPrincipal(DEFAULT);
+  const id = await actor.addWorkoutReminder([0n, 2n], 420n, "Morning lift");
+  expect(id).toBeGreaterThan(0n);
+
+  const reminders = await actor.listWorkoutReminders();
+  expect(reminders).toContainEqual(
+    expect.objectContaining({
+      id,
+      title: "Morning lift",
+      days: [0n, 2n],
+      timeMinutes: 420n,
+    }),
+  );
+
+  await expect(
+    actor.updateWorkoutReminder(id, [1n], 540n, "Evening run"),
+  ).resolves.toEqual({ ok: null });
+  const updated = await actor.listWorkoutReminders();
+  expect(updated.find((r) => r.id === id)).toMatchObject({
+    title: "Evening run",
+    days: [1n],
+    timeMinutes: 540n,
+  });
+
+  await expect(actor.removeWorkoutReminder(id)).resolves.toEqual({ ok: null });
+  const after = await actor.listWorkoutReminders();
+  expect(after.find((r) => r.id === id)).toBeUndefined();
+});
+
+it("rejects a photo proof for the auto-tracked streak challenge and stores one for a non-streak challenge", async () => {
+  actor.setPrincipal(DEFAULT);
+  // The 7-day streak challenge (id 1) is auto-tracked from food/workout logs,
+  // so it must NOT accept a photo proof — it returns #err (does not trap).
+  await expect(
+    actor.submitChallengeProof(1n, "hash-abc"),
+  ).resolves.toEqual({
+    err: "The 7-day streak challenge is tracked automatically — no photo proof needed.",
+  });
+
+  // A non-streak challenge (id 2, "Log 5 meals") accepts a photo proof and
+  // stores the proof reference, scoped per caller and per challenge.
+  await expect(
+    actor.submitChallengeProof(2n, "hash-abc"),
+  ).resolves.toEqual({ ok: null });
+
+  const proofs = await actor.getChallengeProofs(2n);
+  expect(proofs).toHaveLength(1);
+  expect(proofs[0]).toMatchObject({ challengeId: 2n, proofRef: "hash-abc" });
+
+  // Proofs are scoped per challenge: the streak challenge has none stored.
+  await expect(actor.getChallengeProofs(1n)).resolves.toEqual([]);
+});
+
+it("chat returns a profile-missing reply instead of trapping with 'User is not registered'", async () => {
+  // Use a fresh caller so this test does not depend on the DEFAULT caller's
+  // profile from the earlier round-trip test.
+  const EVE = createIdentity("eve-chat-seed").getPrincipal();
+  actor.setPrincipal(EVE);
+  await actor._initialize_access_control();
+
+  // Before a profile exists, chat must NOT trap with "User is not registered".
+  // It returns a clear, actionable reply guiding the user to complete onboarding
+  // — the regression this change protects against. The chat method gates on
+  // profile existence, not on an AccessControl role check that traps.
+  const noProfileRes = await actor.chat({
+    coach: { diet: null },
+    message: "What should I eat?",
+    profile: { age: 30n, goal: "maintain", weightKg: 70, gender: "other" },
+  });
+  expect(typeof noProfileRes.reply).toBe("string");
+  expect(noProfileRes.reply.length).toBeGreaterThan(0);
+  expect(noProfileRes.reply).toMatch(/profile/i);
+  expect(noProfileRes.reply).not.toMatch(/User is not registered/);
+});
+
+it("chat with a profile returns a friendly reply instead of trapping when the inference config is missing", async () => {
+  // This is the regression the chat.mo change protects against: runChat now
+  // wraps the ENTIRE inference path — including fromEnv<system>() config
+  // retrieval — in try/catch. Before the fix, fromEnv<system>() trapped with
+  // IC0503 ("CAFFEINE_INFERENCE_API_KEY is not set") BEFORE the try/catch that
+  // only wrapped the API call, so the trap propagated as an opaque canister
+  // reject. After the fix, the trap is caught and returned as a friendly
+  // ChatResponse with a retry path.
+  //
+  // The PocketIC environment has no CAFFEINE_INFERENCE_API_KEY configured, so
+  // fromEnv<system>() traps here — exactly the condition the fix handles. A
+  // passing assertion proves the trap is caught rather than propagated.
+  const FRANK = createIdentity("frank-chat-seed").getPrincipal();
+  actor.setPrincipal(FRANK);
+  await actor._initialize_access_control();
+  await actor.updateProfile({
+    name: "Frank Chat",
+    weightKg: 80,
+    heightCm: 180,
+    age: 35n,
+    gender: { male: null },
+    goal: { gain: null },
+    activityLevel: { active: null },
+    targetSport: "Gym",
+  });
+
+  // With a profile present, chat proceeds into runChat. fromEnv<system>()
+  // traps because no inference API key is set in this replica; the fix
+  // catches that trap and returns a friendly reply instead of rejecting.
+  const res = await actor.chat({
+    coach: { diet: null },
+    message: "What should I eat for breakfast?",
+    profile: { age: 35n, goal: "gain", weightKg: 80, gender: "male" },
+  });
+  expect(typeof res.reply).toBe("string");
+  expect(res.reply.length).toBeGreaterThan(0);
+  // The friendly fallback mentions the inference service being unreachable,
+  // so the user knows to retry rather than seeing an opaque reject.
+  expect(res.reply).toMatch(/inference service|try again/i);
+});
+
+it("sends a message between friends and both read the conversation", async () => {
+  const CAROL = createIdentity("carol-seed").getPrincipal();
+  const DAVE = createIdentity("dave-seed").getPrincipal();
+
+  // Register Carol and Dave and make them friends so messaging is allowed.
+  actor.setPrincipal(CAROL);
+  await actor._initialize_access_control();
+  await actor.updateProfile({ ...PROFILE, name: "Carol" });
+  actor.setPrincipal(DAVE);
+  await actor._initialize_access_control();
+  await actor.updateProfile({ ...PROFILE, name: "Dave" });
+  await expect(actor.sendFriendRequest(CAROL)).resolves.toEqual({ ok: null });
+  actor.setPrincipal(CAROL);
+  await expect(actor.respondToFriendRequest(DAVE, true)).resolves.toEqual({
+    ok: null,
+  });
+
+  // Carol sends a message to Dave.
+  await expect(
+    actor.sendMessage(DAVE, "Ready for a session?"),
+  ).resolves.toEqual({ ok: null });
+
+  const carolView = await actor.getConversation(DAVE);
+  expect(carolView).toHaveLength(1);
+  expect(carolView[0]).toMatchObject({
+    from: CAROL,
+    to: DAVE,
+    text: "Ready for a session?",
+  });
+
+  // Dave sees the same message in his conversation with Carol.
+  actor.setPrincipal(DAVE);
+  const daveView = await actor.getConversation(CAROL);
+  expect(daveView).toHaveLength(1);
+  expect(daveView[0].text).toBe("Ready for a session?");
+
+  // A non-friend cannot message: Bob is not a friend of Carol.
+  actor.setPrincipal(CAROL);
+  await expect(actor.sendMessage(BOB, "hi")).resolves.toEqual({
+    err: "Recipient is not your friend",
+  });
+});

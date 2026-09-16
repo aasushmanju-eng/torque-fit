@@ -31,6 +31,15 @@ export type MockActor = {
   getFriendRequests: ReturnType<typeof vi.fn>;
   getFriends: ReturnType<typeof vi.fn>;
   chat: ReturnType<typeof vi.fn>;
+  getChallengeProofs: ReturnType<typeof vi.fn>;
+  submitChallengeProof: ReturnType<typeof vi.fn>;
+  getConversation: ReturnType<typeof vi.fn>;
+  getConversations: ReturnType<typeof vi.fn>;
+  sendMessage: ReturnType<typeof vi.fn>;
+  listWorkoutReminders: ReturnType<typeof vi.fn>;
+  addWorkoutReminder: ReturnType<typeof vi.fn>;
+  updateWorkoutReminder: ReturnType<typeof vi.fn>;
+  removeWorkoutReminder: ReturnType<typeof vi.fn>;
   [key: string]: unknown;
 };
 
@@ -53,6 +62,15 @@ export function createMockActor(): MockActor {
     getFriendRequests: vi.fn(),
     getFriends: vi.fn(),
     chat: vi.fn(),
+    getChallengeProofs: vi.fn(),
+    submitChallengeProof: vi.fn(),
+    getConversation: vi.fn(),
+    getConversations: vi.fn(),
+    sendMessage: vi.fn(),
+    listWorkoutReminders: vi.fn(),
+    addWorkoutReminder: vi.fn(),
+    updateWorkoutReminder: vi.fn(),
+    removeWorkoutReminder: vi.fn(),
   };
 }
 

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { greeting } from "@/lib/api";
-import { NAV_ITEMS } from "@/lib/types";
+import { LEGAL_LINKS, NAV_ITEMS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
@@ -148,7 +148,7 @@ export function Layout() {
           isMobile ? "pt-16" : "pl-64",
         )}
       >
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-card px-6 shadow-subtle">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-card/90 px-6 shadow-subtle backdrop-blur">
           <div className="flex flex-col">
             <span className="font-display text-sm font-semibold">
               {greeting()}
@@ -166,17 +166,36 @@ export function Layout() {
           <Outlet />
         </main>
 
-        <footer className="border-t border-border px-6 py-4 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()}. Built with love using{" "}
-          <a
-            href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
-              window.location.hostname,
-            )}`}
-            className="text-primary hover:underline"
-          >
-            caffeine.ai
-          </a>
-          .
+        <footer className="border-t border-border bg-muted/40 px-6 py-6">
+          <div className="mx-auto flex max-w-6xl flex-col gap-4">
+            <nav
+              className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2"
+              aria-label="Legal links"
+            >
+              {LEGAL_LINKS.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  data-ocid={`footer_${item.path.replace("/", "")}`}
+                  className="focus-ring text-xs text-muted-foreground transition-fast hover:text-primary"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <p className="text-center text-xs text-muted-foreground">
+              © {new Date().getFullYear()}. Built with love using{" "}
+              <a
+                href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
+                  window.location.hostname,
+                )}`}
+                className="text-primary hover:underline"
+              >
+                caffeine.ai
+              </a>
+              .
+            </p>
+          </div>
         </footer>
       </div>
     </div>

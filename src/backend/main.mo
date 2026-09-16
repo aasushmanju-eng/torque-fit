@@ -12,9 +12,15 @@ import FloatValue "mo:caffeineai-oql/FloatValue";
 import NatValue "mo:caffeineai-oql/NatValue";
 import IntValue "mo:caffeineai-oql/IntValue";
 import Types "types/core";
+import SocialTypes "types/social";
+import ReminderTypes "types/reminders";
+import ChallengeTypes "types/challenges";
 import CoreLib "lib/core";
 import CoreApi "mixins/core-api";
 import ChatApi "mixins/chat-api";
+import SocialApi "mixins/social-api";
+import RemindersApi "mixins/reminders-api";
+import ChallengesApi "mixins/challenges-api";
 import ApiDocMixin "mixins/api-doc";
 
 actor {
@@ -28,6 +34,9 @@ actor {
   let friends : Map.Map<Principal, [Principal]>;
   let foodLog : Map.Map<Principal, [Types.FoodLogEntry]>;
   let workouts : Map.Map<Principal, [Types.Workout]>;
+  let messages : Map.Map<Principal, Map.Map<Principal, [SocialTypes.ChatMessage]>>;
+  let reminders : Map.Map<Principal, [ReminderTypes.WorkoutReminder]>;
+  let proofs : Map.Map<Principal, [ChallengeTypes.ChallengeProof]>;
   let state : { var nextId : Nat };
 
   transient let anyP = Principal.fromText("aaaaa-aa");
@@ -82,6 +91,38 @@ actor {
     acc.toArray();
   };
 
+  func messageRows() : [(Principal, SocialTypes.ChatMessage)] {
+    let acc = List.empty<(Principal, SocialTypes.ChatMessage)>();
+    for ((p, inner) in messages.entries()) {
+      for ((_, msgs) in inner.entries()) {
+        for (m in msgs.values()) {
+          acc.add((p, m));
+        };
+      };
+    };
+    acc.toArray();
+  };
+
+  func reminderRows() : [(Principal, ReminderTypes.WorkoutReminder)] {
+    let acc = List.empty<(Principal, ReminderTypes.WorkoutReminder)>();
+    for ((p, rs) in reminders.entries()) {
+      for (r in rs.values()) {
+        acc.add((p, r));
+      };
+    };
+    acc.toArray();
+  };
+
+  func proofRows() : [(Principal, ChallengeTypes.ChallengeProof)] {
+    let acc = List.empty<(Principal, ChallengeTypes.ChallengeProof)>();
+    for ((p, ps) in proofs.entries()) {
+      for (pr in ps.values()) {
+        acc.add((p, pr));
+      };
+    };
+    acc.toArray();
+  };
+
   include MixinAuthorization(accessControlState, null);
   include CoreApi(
     accessControlState,
@@ -96,7 +137,10 @@ actor {
     workouts,
     state,
   );
-  include ChatApi(accessControlState);
+  include ChatApi(profiles);
+  include SocialApi(messages, friends, state);
+  include RemindersApi(reminders, state);
+  include ChallengesApi(proofs, state);
   include Expose({
     entities = [
       OQL.Entity.manual<(Principal, Types.Profile)>("profile", func () = profiles.entries(), "Profile", "principal")
@@ -162,6 +206,37 @@ actor {
         .sample((anyP, anyP))
         .payload("principal", func ((p, _)) = p)
         .payload("friend", func ((_, f)) = f)
+        .ownedBy("principal")
+        .controllerOrScoped()
+        .build(),
+      OQL.Entity.manual<(Principal, SocialTypes.ChatMessage)>("chatMessage", func () = messageRows().values(), "ChatMessage", "id")
+        .sample((anyP, { id = 0; from = anyP; to = anyP; text = ""; sentAtNs = 0 }))
+        .payload("principal", func ((p, _)) = p)
+        .payload("id", func ((_, m)) = m.id)
+        .payload("from", func ((_, m)) = m.from)
+        .payload("to", func ((_, m)) = m.to)
+        .payload("text", func ((_, m)) = m.text)
+        .payload("sentAtNs", func ((_, m)) = m.sentAtNs)
+        .ownedBy("principal")
+        .controllerOrScoped()
+        .build(),
+      OQL.Entity.manual<(Principal, ReminderTypes.WorkoutReminder)>("workoutReminder", func () = reminderRows().values(), "WorkoutReminder", "id")
+        .sample((anyP, { id = 0; days = []; timeMinutes = 0; title = "" }))
+        .payload("principal", func ((p, _)) = p)
+        .payload("id", func ((_, r)) = r.id)
+        .payload("days", func ((_, r)) = r.days.values().map(func d = d.toText()).join(","))
+        .payload("timeMinutes", func ((_, r)) = r.timeMinutes)
+        .payload("title", func ((_, r)) = r.title)
+        .ownedBy("principal")
+        .controllerOrScoped()
+        .build(),
+      OQL.Entity.manual<(Principal, ChallengeTypes.ChallengeProof)>("challengeProof", func () = proofRows().values(), "ChallengeProof", "id")
+        .sample((anyP, { id = 0; challengeId = 0; proofRef = ""; submittedAtNs = 0 }))
+        .payload("principal", func ((p, _)) = p)
+        .payload("id", func ((_, pr)) = pr.id)
+        .payload("challengeId", func ((_, pr)) = pr.challengeId)
+        .payload("proofRef", func ((_, pr)) = pr.proofRef)
+        .payload("submittedAtNs", func ((_, pr)) = pr.submittedAtNs)
         .ownedBy("principal")
         .controllerOrScoped()
         .build(),

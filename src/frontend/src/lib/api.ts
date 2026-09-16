@@ -24,3 +24,26 @@ export function greeting(): string {
   if (hour < 18) return "Good afternoon";
   return "Good evening";
 }
+
+const CONSENT_KEY = "torque-fit-consent";
+
+export type ConsentChoice = "accepted" | "declined";
+
+/** Read the stored cookie/data consent choice, or null when not yet decided. */
+export function getConsentChoice(): ConsentChoice | null {
+  try {
+    const value = window.localStorage.getItem(CONSENT_KEY);
+    return value === "accepted" || value === "declined" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist the user's cookie/data consent choice. */
+export function setConsentChoice(choice: ConsentChoice): void {
+  try {
+    window.localStorage.setItem(CONSENT_KEY, choice);
+  } catch {
+    // Storage unavailable — consent simply won't persist this session.
+  }
+}

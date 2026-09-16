@@ -93,4 +93,97 @@ describe("GymMentor", () => {
       ).toBeInTheDocument();
     });
   });
+
+  it("switches to the football coach and sends a message addressed to that coach", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<GymMentor />, mockActor);
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Football" })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("tab", { name: "Football" }));
+
+    // Football-specific suggestions appear in the empty state.
+    await waitFor(() => {
+      expect(
+        screen.getByText("Drills to improve my first touch"),
+      ).toBeInTheDocument();
+    });
+
+    await user.type(
+      screen.getByLabelText("Message Football"),
+      "How do I build sprint endurance?",
+    );
+    await user.click(screen.getByLabelText("Send message"));
+
+    await waitFor(() => {
+      expect(mockActor.chat).toHaveBeenCalledWith({
+        coach: "football",
+        message: "How do I build sprint endurance?",
+        profile: { age: 30n, goal: "lose", weightKg: 70, gender: "female" },
+      });
+    });
+  });
+
+  it("switches to the basketball coach and sends a message addressed to that coach", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<GymMentor />, mockActor);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", { name: "Basketball" }),
+      ).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("tab", { name: "Basketball" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Drills to improve my jump shot"),
+      ).toBeInTheDocument();
+    });
+
+    await user.type(
+      screen.getByLabelText("Message Basketball"),
+      "How do I get quicker on defense?",
+    );
+    await user.click(screen.getByLabelText("Send message"));
+
+    await waitFor(() => {
+      expect(mockActor.chat).toHaveBeenCalledWith({
+        coach: "basketball",
+        message: "How do I get quicker on defense?",
+        profile: { age: 30n, goal: "lose", weightKg: 70, gender: "female" },
+      });
+    });
+  });
+
+  it("switches to the swimming coach and sends a message addressed to that coach", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<GymMentor />, mockActor);
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Swimming" })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("tab", { name: "Swimming" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("How do I improve my freestyle technique?"),
+      ).toBeInTheDocument();
+    });
+
+    await user.type(
+      screen.getByLabelText("Message Swimming"),
+      "A plan to build swim endurance",
+    );
+    await user.click(screen.getByLabelText("Send message"));
+
+    await waitFor(() => {
+      expect(mockActor.chat).toHaveBeenCalledWith({
+        coach: "swimming",
+        message: "A plan to build swim endurance",
+        profile: { age: 30n, goal: "lose", weightKg: 70, gender: "female" },
+      });
+    });
+  });
 });

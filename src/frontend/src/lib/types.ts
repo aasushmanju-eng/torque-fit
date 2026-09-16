@@ -17,6 +17,45 @@ export interface NavItem {
   description: string;
 }
 
+export interface LegalLink {
+  label: string;
+  path: string;
+  description: string;
+}
+
+export const LEGAL_LINKS: LegalLink[] = [
+  {
+    label: "Privacy Policy",
+    path: "/privacy",
+    description: "How we collect, store, and protect your data.",
+  },
+  {
+    label: "Terms of Service",
+    path: "/terms",
+    description: "The rules and acceptable use for your account.",
+  },
+  {
+    label: "Health Disclaimer",
+    path: "/disclaimer",
+    description: "Torque Fit is not medical advice.",
+  },
+  {
+    label: "Cookies & Consent",
+    path: "/cookies",
+    description: "How we use cookies and your data preferences.",
+  },
+  {
+    label: "Pricing & Billing",
+    path: "/pricing",
+    description: "Plans, billing terms, and refunds.",
+  },
+  {
+    label: "IP & Compliance",
+    path: "/ip",
+    description: "Trademarks, licensing, and open-source notes.",
+  },
+];
+
 export const NAV_ITEMS: NavItem[] = [
   {
     label: "Dashboard",

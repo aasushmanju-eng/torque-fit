@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -13,7 +12,14 @@ import {
 } from "@/components/ui/select";
 import { useUpdateProfile } from "@/hooks/useQueries";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ArrowRight, Check, Dumbbell, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Dumbbell,
+  Sparkles,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 
@@ -132,24 +138,62 @@ const STEPS = [
   },
 ] as const;
 
+/**
+ * A selectable option card. Clicking the card calls `onSelect` directly with
+ * the option's value, which the parent wires to its state setter. We do NOT
+ * rely on a hidden Radix RadioGroupItem receiving the click — per the project
+ * learning, sr-only RadioGroupItems do not receive clicks reliably, so the
+ * card itself is the interactive control and drives selection visibly.
+ */
 function RadioCard({
   value,
   label,
   hint,
+  checked,
+  onSelect,
+  ocid,
 }: {
   value: string;
   label: string;
   hint: string;
+  checked: boolean;
+  onSelect: (value: string) => void;
+  ocid: string;
 }) {
   return (
-    <Label
-      htmlFor={`rc-${value}`}
-      className="flex cursor-pointer flex-col gap-1 rounded-lg border border-border bg-card px-3 py-3 transition-smooth has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary/10"
+    <button
+      type="button"
+      data-ocid={ocid}
+      aria-pressed={checked}
+      onClick={() => onSelect(value)}
+      className={cn(
+        "hover-lift focus-ring press group relative flex w-full cursor-pointer flex-col gap-1 rounded-xl border bg-card px-3 py-3 text-left transition-smooth",
+        checked
+          ? "border-primary bg-primary/10 shadow-[0_0_0_1px_oklch(0.66_0.2_240/0.4),0_8px_24px_-12px_oklch(0.66_0.2_240/0.5)]"
+          : "border-border hover:border-primary/40",
+      )}
     >
-      <RadioGroupItem value={value} id={`rc-${value}`} className="sr-only" />
-      <span className="text-sm font-medium">{label}</span>
+      <span
+        className={cn(
+          "absolute top-3 right-3 flex size-5 items-center justify-center rounded-full border transition-smooth",
+          checked
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-border bg-muted text-transparent",
+        )}
+        aria-hidden="true"
+      >
+        <Check className="size-3" strokeWidth={3} />
+      </span>
+      <span
+        className={cn(
+          "text-sm font-medium transition-smooth",
+          checked ? "text-primary" : "text-foreground",
+        )}
+      >
+        {label}
+      </span>
       <span className="text-xs text-muted-foreground">{hint}</span>
-    </Label>
+    </button>
   );
 }
 
@@ -168,12 +212,20 @@ function SelectField({
   onValueChange: (value: string) => void;
   ocid: string;
 }) {
+  const selected = value !== "";
   return (
     <div className="grid gap-2">
       <Label>{label}</Label>
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="w-full" data-ocid={ocid}>
+        <SelectTrigger
+          className={cn(
+            "focus-ring w-full transition-smooth",
+            selected && "border-primary/60 bg-primary/5 text-foreground",
+          )}
+          data-ocid={ocid}
+        >
           <SelectValue placeholder={placeholder} />
+          <ChevronDown className="size-4 opacity-50" aria-hidden="true" />
         </SelectTrigger>
         <SelectContent>
           {options.map((opt) => (
@@ -226,21 +278,23 @@ export function ProfileFields({ draft, onChange, step }: ProfileFieldsProps) {
           </div>
           <div className="grid gap-3">
             <Label>Gender</Label>
-            <RadioGroup
-              value={draft.gender}
-              onValueChange={(v) => onChange({ gender: v as Gender })}
+            <fieldset
+              aria-label="Gender"
               className="grid grid-cols-1 gap-3 sm:grid-cols-3"
               data-ocid="profile.gender_radio"
             >
-              {GENDER_OPTIONS.map((opt) => (
+              {GENDER_OPTIONS.map((opt, i) => (
                 <RadioCard
                   key={opt.value}
                   value={opt.value}
                   label={opt.label}
                   hint={opt.hint}
+                  checked={draft.gender === opt.value}
+                  onSelect={(v) => onChange({ gender: v as Gender })}
+                  ocid={`profile.gender_option.${i + 1}`}
                 />
               ))}
-            </RadioGroup>
+            </fieldset>
           </div>
         </>
       )}
@@ -281,21 +335,23 @@ export function ProfileFields({ draft, onChange, step }: ProfileFieldsProps) {
         <>
           <div className="grid gap-3">
             <Label>Fitness goal</Label>
-            <RadioGroup
-              value={draft.goal}
-              onValueChange={(v) => onChange({ goal: v as FitnessGoal })}
+            <fieldset
+              aria-label="Fitness goal"
               className="grid grid-cols-1 gap-3 sm:grid-cols-3"
               data-ocid="profile.goal_radio"
             >
-              {GOAL_OPTIONS.map((opt) => (
+              {GOAL_OPTIONS.map((opt, i) => (
                 <RadioCard
                   key={opt.value}
                   value={opt.value}
                   label={opt.label}
                   hint={opt.hint}
+                  checked={draft.goal === opt.value}
+                  onSelect={(v) => onChange({ goal: v as FitnessGoal })}
+                  ocid={`profile.goal_option.${i + 1}`}
                 />
               ))}
-            </RadioGroup>
+            </fieldset>
           </div>
           <SelectField
             label="Activity level"
@@ -351,8 +407,13 @@ export function OnboardingFlow({ onComplete }: { onComplete: () => void }) {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <div className="flex items-center gap-3">
-        <span className="flex size-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="flex items-center gap-3"
+      >
+        <span className="glow-primary flex size-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
           <Dumbbell className="size-6" aria-hidden="true" />
         </span>
         <div>
@@ -363,9 +424,15 @@ export function OnboardingFlow({ onComplete }: { onComplete: () => void }) {
             A few details so your AI coach can personalize everything.
           </p>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="flex items-center gap-2" data-ocid="onboarding_stepper">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+        className="flex items-center gap-2"
+        data-ocid="onboarding_stepper"
+      >
         {STEPS.map((s, i) => (
           <div key={s.id} className="flex flex-1 items-center gap-2">
             <div className="flex items-center gap-2">
@@ -373,7 +440,7 @@ export function OnboardingFlow({ onComplete }: { onComplete: () => void }) {
                 className={cn(
                   "flex size-8 items-center justify-center rounded-full text-sm font-semibold transition-smooth",
                   s.id === step
-                    ? "bg-primary text-primary-foreground"
+                    ? "glow-primary bg-primary text-primary-foreground"
                     : s.id < step
                       ? "bg-primary/20 text-primary"
                       : "bg-muted text-muted-foreground",
@@ -397,80 +464,88 @@ export function OnboardingFlow({ onComplete }: { onComplete: () => void }) {
             {i < STEPS.length - 1 && (
               <div
                 className={cn(
-                  "h-px flex-1",
+                  "h-px flex-1 transition-smooth",
                   s.id < step ? "bg-primary" : "bg-border",
                 )}
               />
             )}
           </div>
         ))}
-      </div>
+      </motion.div>
 
-      <Card className="bg-glow-primary">
-        <CardContent className="flex flex-col gap-6 px-6 py-6 sm:px-8">
-          <div className="flex flex-col gap-1">
-            <h2 className="font-display text-xl font-semibold">
-              {current.title}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {current.description}
-            </p>
-          </div>
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.99 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.45, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <Card className="bg-glow-primary">
+          <CardContent className="flex flex-col gap-6 px-6 py-6 sm:px-8">
+            <div className="flex flex-col gap-1">
+              <h2 className="font-display text-xl font-semibold">
+                {current.title}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {current.description}
+              </p>
+            </div>
 
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-            className="flex flex-col gap-5"
-          >
-            <ProfileFields draft={draft} onChange={patch} step={step} />
-          </motion.div>
-
-          {updateProfile.isError && (
-            <p
-              className="text-sm text-destructive"
-              data-ocid="onboarding_error"
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="flex flex-col gap-5"
             >
-              Something went wrong saving your profile. Please try again.
-            </p>
-          )}
+              <ProfileFields draft={draft} onChange={patch} step={step} />
+            </motion.div>
 
-          <div className="flex items-center justify-between gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setStep((prev) => (prev - 1) as 1 | 2 | 3)}
-              disabled={step === 1}
-              data-ocid="onboarding_back_button"
-            >
-              <ArrowLeft className="size-4" aria-hidden="true" />
-              Back
-            </Button>
-            {step < 3 ? (
-              <Button
-                type="button"
-                onClick={() => setStep((prev) => (prev + 1) as 1 | 2 | 3)}
-                disabled={!canContinue}
-                data-ocid="onboarding_continue_button"
+            {updateProfile.isError && (
+              <motion.p
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                data-ocid="onboarding_error"
               >
-                Continue
-                <ArrowRight className="size-4" aria-hidden="true" />
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={handleSubmit}
-                disabled={!canContinue || updateProfile.isPending}
-                data-ocid="onboarding_submit_button"
-              >
-                {updateProfile.isPending ? "Saving…" : "Create my profile"}
-                <Sparkles className="size-4" aria-hidden="true" />
-              </Button>
+                Something went wrong saving your profile. Please try again.
+              </motion.p>
             )}
-          </div>
-        </CardContent>
-      </Card>
+
+            <div className="flex items-center justify-between gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setStep((prev) => (prev - 1) as 1 | 2 | 3)}
+                disabled={step === 1}
+                data-ocid="onboarding_back_button"
+              >
+                <ArrowLeft className="size-4" aria-hidden="true" />
+                Back
+              </Button>
+              {step < 3 ? (
+                <Button
+                  type="button"
+                  onClick={() => setStep((prev) => (prev + 1) as 1 | 2 | 3)}
+                  disabled={!canContinue}
+                  data-ocid="onboarding_continue_button"
+                >
+                  Continue
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={!canContinue || updateProfile.isPending}
+                  data-ocid="onboarding_submit_button"
+                >
+                  {updateProfile.isPending ? "Saving…" : "Create my profile"}
+                  <Sparkles className="size-4" aria-hidden="true" />
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

@@ -119,7 +119,7 @@ function RankProgress({
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">Progress to next level</span>
-          <span className="text-muted-foreground">{value}%</span>
+          <span className="font-mono text-muted-foreground">{value}%</span>
         </div>
         <Progress value={value} data-ocid="rank_progress" />
         <p className="text-xs text-muted-foreground">
@@ -194,10 +194,10 @@ function RewardCard({
   return (
     <Card
       data-ocid={`reward_card.${index}`}
-      className="gap-3 transition-smooth hover:border-primary/40 hover:bg-accent"
+      className="gap-3 transition-smooth hover:border-primary/40 hover:bg-accent hover-lift focus-ring"
     >
       <CardContent className="flex flex-col items-center gap-3 px-6 py-5 text-center">
-        <span className="flex size-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
+        <span className="flex size-12 items-center justify-center rounded-xl bg-primary/15 text-primary transition-transform duration-300 group-hover:scale-110">
           <Award className="size-6" aria-hidden="true" />
         </span>
         <div className="flex flex-col gap-1">
@@ -222,7 +222,7 @@ export default function Rank() {
   return (
     <div className="flex flex-col gap-6">
       {/* Hero */}
-      <section className="flex flex-col gap-1">
+      <section className="flex flex-col gap-1 animate-rise">
         <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
           Your <span className="text-gradient-neon">rank &amp; rewards</span>
         </h1>
@@ -234,7 +234,10 @@ export default function Rank() {
 
       {/* Rank overview */}
       <section className="grid gap-6 lg:grid-cols-5">
-        <Card data-ocid="rank_card" className="bg-glow-primary lg:col-span-2">
+        <Card
+          data-ocid="rank_card"
+          className="bg-glow-primary lg:col-span-2 animate-rise"
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Star className="size-4 text-primary" aria-hidden="true" />
@@ -246,13 +249,13 @@ export default function Rank() {
             {loading ? (
               <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-4">
-                  <Skeleton className="size-16 rounded-2xl" />
+                  <Skeleton className="size-16 animate-shimmer rounded-2xl" />
                   <div className="flex flex-col gap-2">
-                    <Skeleton className="h-5 w-20" />
-                    <Skeleton className="h-7 w-32" />
+                    <Skeleton className="h-5 w-20 animate-shimmer" />
+                    <Skeleton className="h-7 w-32 animate-shimmer" />
                   </div>
                 </div>
-                <Skeleton className="h-2 w-full" />
+                <Skeleton className="h-2 w-full animate-shimmer" />
               </div>
             ) : rank ? (
               <RankProgress
@@ -262,14 +265,26 @@ export default function Rank() {
                 xpToNextLevel={rank.xpToNextLevel}
               />
             ) : (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                Complete challenges to earn XP and rank up.
-              </p>
+              <div
+                data-ocid="rank_empty_state"
+                className="flex flex-col items-center gap-3 py-10 text-center"
+              >
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Star className="size-6" aria-hidden="true" />
+                </span>
+                <p className="max-w-xs text-sm text-muted-foreground">
+                  Complete challenges to earn XP and rank up.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
 
-        <Card data-ocid="tier_ladder_card" className="lg:col-span-3">
+        <Card
+          data-ocid="tier_ladder_card"
+          className="lg:col-span-3 animate-rise"
+          style={{ animationDelay: "0.06s" }}
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="size-4 text-primary" aria-hidden="true" />
@@ -285,24 +300,35 @@ export default function Rank() {
                     { length: 5 },
                     (_, i) => `tier-skeleton-${i}`,
                   ).map((id) => (
-                    <Skeleton key={id} className="size-11 rounded-xl" />
+                    <Skeleton
+                      key={id}
+                      className="size-11 animate-shimmer rounded-xl"
+                    />
                   ))}
                 </div>
-                <Skeleton className="h-1.5 w-full" />
+                <Skeleton className="h-1.5 w-full animate-shimmer" />
               </div>
             ) : rank ? (
               <TierLadder currentTier={rank.tier} />
             ) : (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                Your tier will appear here once you start earning XP.
-              </p>
+              <div
+                data-ocid="tier_ladder_empty_state"
+                className="flex flex-col items-center gap-3 py-10 text-center"
+              >
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Trophy className="size-6" aria-hidden="true" />
+                </span>
+                <p className="max-w-xs text-sm text-muted-foreground">
+                  Your tier will appear here once you start earning XP.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
       </section>
 
       {/* Rewards / badges */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3 animate-rise">
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <h2 className="font-display text-lg font-semibold">
@@ -323,15 +349,15 @@ export default function Rank() {
               (id) => (
                 <Card key={id} className="gap-3">
                   <CardContent className="flex flex-col items-center gap-3 px-6 py-5">
-                    <Skeleton className="size-12 rounded-xl" />
-                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="size-12 animate-shimmer rounded-xl" />
+                    <Skeleton className="h-4 w-24 animate-shimmer" />
                   </CardContent>
                 </Card>
               ),
             )}
           </div>
         ) : rewardList.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 stagger">
             {rewardList.map((reward, index) => (
               <RewardCard
                 key={reward.id.toString()}
@@ -343,7 +369,10 @@ export default function Rank() {
             ))}
           </div>
         ) : (
-          <Card data-ocid="rewards_empty_state" className="bg-glow-primary">
+          <Card
+            data-ocid="rewards_empty_state"
+            className="bg-glow-primary animate-scale-in"
+          >
             <CardContent className="flex flex-col items-center gap-4 px-6 py-14 text-center">
               <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
                 <Sparkles className="size-7" aria-hidden="true" />

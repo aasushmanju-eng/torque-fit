@@ -4,12 +4,30 @@ type AccessControlState__201339279 =
     var adminAssigned : Bool;
     userRoles : Map__230067015<Principal, UserRole__91647283>
   };
+type ActivityLevel__125352247 =
+  {#active; #light; #moderate; #sedentary; #veryActive};
 type ActivityLevel__288448201 =
   {#active; #light; #moderate; #sedentary; #veryActive};
 type ActivityLevel__779345087 =
   {#active; #light; #moderate; #sedentary; #veryActive};
+type ChallengeProof__390323978 =
+  {challengeId : Nat; id : Nat; proofRef : Text; submittedAtNs : Int};
+type ChallengeProof__728233844 =
+  {challengeId : Nat; id : Nat; proofRef : Text; submittedAtNs : Int};
+type ChallengeStatus__623718950 = {#active; #completed};
 type ChallengeStatus__930792776 = {#active; #completed};
 type ChallengeStatus__938717309 = {#active; #completed};
+type Challenge__1069292236 =
+  {
+    description : Text;
+    id : Nat;
+    progress : Nat;
+    rewardBadge : Text;
+    rewardPoints : Nat;
+    status : ChallengeStatus__623718950;
+    target : Nat;
+    title : Text
+  };
 type Challenge__199164202 =
   {
     description : Text;
@@ -32,11 +50,24 @@ type Challenge__849855506 =
     target : Nat;
     title : Text
   };
+type ChatMessage__293493947 =
+  {from : Principal; id : Nat; sentAtNs : Int; text : Text; to : Principal};
+type ChatMessage__719808593 =
+  {from : Principal; id : Nat; sentAtNs : Int; text : Text; to : Principal};
 type Data__44217153<K, V> = {var count : Nat__227979830; kvs : [var ?(K, V)]};
 type Exercise__460223199 = {name : Text; sets : [WorkoutSet__580507775]};
+type Exercise__46423269 = {name : Text; sets : [WorkoutSet__177136484]};
 type Exercise__616599216 = {name : Text; sets : [WorkoutSet__98940842]};
 type FitnessGoal__657549876 = {#gain; #lose; #maintain};
+type FitnessGoal__807528763 = {#gain; #lose; #maintain};
 type FitnessGoal__832854495 = {#gain; #lose; #maintain};
+type FoodLogEntry__226726969 =
+  {
+    id : Nat;
+    loggedAtNs : Int;
+    product : FoodProduct__952621944;
+    servingSize : Float
+  };
 type FoodLogEntry__413006913 =
   {
     id : Nat;
@@ -69,14 +100,27 @@ type FoodProduct__676723021 =
     name : Text;
     protein : Float
   };
+type FoodProduct__952621944 =
+  {
+    calories : Float;
+    carbs : Float;
+    code : Text;
+    fat : Float;
+    name : Text;
+    protein : Float
+  };
 type FriendRequestStatus__136092105 = {#accepted; #declined; #pending};
 type FriendRequestStatus__181712220 = {#accepted; #declined; #pending};
+type FriendRequestStatus__209359671 = {#accepted; #declined; #pending};
+type FriendRequest__258795049 =
+  {from : Principal; status : FriendRequestStatus__209359671; to : Principal};
 type FriendRequest__329800622 =
   {from : Principal; status : FriendRequestStatus__181712220; to : Principal};
 type FriendRequest__698096220 =
   {from : Principal; status : FriendRequestStatus__136092105; to : Principal};
 type Gender__126613332 = {#female; #male; #other};
 type Gender__665100248 = {#female; #male; #other};
+type Gender__756756555 = {#female; #male; #other};
 type Internal__283199666<K, V> =
   {children : [var ?Node__204828119<K, V>]; data : Data__44217153<K, V>};
 type Leaf__598469445<K, V> = {data : Data__44217153<K, V>};
@@ -107,15 +151,59 @@ type NewActor__512319638 =
     workouts : Map__230067015<Principal, [Workout__220965628]>;
     xp : Map__230067015<Principal, Nat>
   };
+type NewActor__772334770 =
+  {
+    accessControlState : AccessControlState__201339279;
+    challengeList : Map__230067015<Principal, [Challenge__1069292236]>;
+    foodLog : Map__230067015<Principal, [FoodLogEntry__226726969]>;
+    friendRequests : List__836382695<FriendRequest__258795049>;
+    friends : Map__230067015<Principal, [Principal]>;
+    messages :
+      Map__230067015<Principal,
+                      Map__230067015<Principal, [ChatMessage__719808593]>>;
+    profiles : Map__230067015<Principal, Profile__446860557>;
+    proofs : Map__230067015<Principal, [ChallengeProof__390323978]>;
+    reminders : Map__230067015<Principal, [WorkoutReminder__636683339]>;
+    rewards : Map__230067015<Principal, [Reward__287636245]>;
+    state : {var nextId : Nat};
+    streaks : Map__230067015<Principal, StreakInfo__962193137>;
+    workouts : Map__230067015<Principal, [Workout__913928979]>;
+    xp : Map__230067015<Principal, Nat>
+  };
 type Node__204828119<K, V> =
   {#internal : Internal__283199666<K, V>; #leaf : Leaf__598469445<K, V>};
 type OldActor__675970920 = {};
+type OldActor__887486218 =
+  {
+    accessControlState : AccessControlState__201339279;
+    challengeList : Map__230067015<Principal, [Challenge__1069292236]>;
+    foodLog : Map__230067015<Principal, [FoodLogEntry__226726969]>;
+    friendRequests : List__836382695<FriendRequest__258795049>;
+    friends : Map__230067015<Principal, [Principal]>;
+    profiles : Map__230067015<Principal, Profile__446860557>;
+    rewards : Map__230067015<Principal, [Reward__287636245]>;
+    state : {var nextId : Nat};
+    streaks : Map__230067015<Principal, StreakInfo__962193137>;
+    workouts : Map__230067015<Principal, [Workout__913928979]>;
+    xp : Map__230067015<Principal, Nat>
+  };
 type Profile__1043965018 =
   {
     activityLevel : ActivityLevel__288448201;
     age : Nat;
     gender : Gender__665100248;
     goal : FitnessGoal__832854495;
+    heightCm : Float;
+    name : Text;
+    targetSport : Text;
+    weightKg : Float
+  };
+type Profile__446860557 =
+  {
+    activityLevel : ActivityLevel__125352247;
+    age : Nat;
+    gender : Gender__756756555;
+    goal : FitnessGoal__807528763;
     heightCm : Float;
     name : Text;
     targetSport : Text;
@@ -132,13 +220,21 @@ type Profile__742327081 =
     targetSport : Text;
     weightKg : Float
   };
+type Reward__287636245 =
+  {badge : Text; earnedAtNs : Int; id : Nat; points : Nat};
 type Reward__507400255 =
   {badge : Text; earnedAtNs : Int; id : Nat; points : Nat};
 type Reward__712045914 =
   {badge : Text; earnedAtNs : Int; id : Nat; points : Nat};
 type StreakInfo__488353853 = {var current : Nat; var lastDay : Int};
 type StreakInfo__588951847 = {var current : Nat; var lastDay : Int};
+type StreakInfo__962193137 = {var current : Nat; var lastDay : Int};
 type UserRole__91647283 = {#admin; #guest; #user};
+type WorkoutReminder__43187840 =
+  {days : [Nat]; id : Nat; timeMinutes : Nat; title : Text};
+type WorkoutReminder__636683339 =
+  {days : [Nat]; id : Nat; timeMinutes : Nat; title : Text};
+type WorkoutSet__177136484 = {reps : Nat; weightKg : Float};
 type WorkoutSet__580507775 = {reps : Nat; weightKg : Float};
 type WorkoutSet__98940842 = {reps : Nat; weightKg : Float};
 type Workout__220965628 =
@@ -155,8 +251,16 @@ type Workout__291646838 =
     id : Nat;
     title : Text
   };
+type Workout__913928979 =
+  {
+    completedAtNs : Int;
+    exercises : [Exercise__46423269];
+    id : Nat;
+    title : Text
+  };
 {
-  "20260915_120000" : (_old : OldActor__675970920) -> NewActor__512319638
+  "20260915_120000" : (_old : OldActor__675970920) -> NewActor__512319638;
+  "20260916_000000" : (old : OldActor__887486218) -> NewActor__772334770
 }
 actor  {
   stable accessControlState :
@@ -185,9 +289,26 @@ actor  {
       var root : Node__204828119<Principal, [Principal]>;
       var size : Nat__227979830
     };
+  stable messages :
+    {
+      var root :
+        Node__204828119<Principal,
+                         Map__230067015<Principal, [ChatMessage__293493947]>>;
+      var size : Nat__227979830
+    };
   stable profiles :
     {
       var root : Node__204828119<Principal, Profile__742327081>;
+      var size : Nat__227979830
+    };
+  stable proofs :
+    {
+      var root : Node__204828119<Principal, [ChallengeProof__728233844]>;
+      var size : Nat__227979830
+    };
+  stable reminders :
+    {
+      var root : Node__204828119<Principal, [WorkoutReminder__43187840]>;
       var size : Nat__227979830
     };
   stable rewards :

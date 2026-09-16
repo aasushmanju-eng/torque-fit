@@ -27,8 +27,17 @@ import { useCamera } from "@caffeineai/camera";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  BarcodeFormat,
+  BinaryBitmap,
+  DecodeHintType,
+  HybridBinarizer,
+  MultiFormatReader,
+  RGBLuminanceSource,
+} from "@zxing/library";
+import {
   Camera,
   CameraOff,
+  CheckCircle2,
   Flame,
   Pencil,
   Plus,
@@ -38,7 +47,7 @@ import {
   Trash2,
   UtensilsCrossed,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 function useDietTarget() {
   const { actor, isFetching } = useActor(createActor);
@@ -90,6 +99,11 @@ function useLogFood() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["dailyFoodLog"] });
+      // Food logs advance the "Log 5 meals" challenge and the 7-day streak, so
+      // refresh challenges and rank so progress reflects immediately.
+      void queryClient.invalidateQueries({ queryKey: ["challenges"] });
+      void queryClient.invalidateQueries({ queryKey: ["rankInfo"] });
+      void queryClient.invalidateQueries({ queryKey: ["rewards"] });
     },
   });
 }
@@ -110,6 +124,8 @@ function useUpdateFoodEntry() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["dailyFoodLog"] });
+      void queryClient.invalidateQueries({ queryKey: ["challenges"] });
+      void queryClient.invalidateQueries({ queryKey: ["rankInfo"] });
     },
   });
 }
@@ -124,6 +140,8 @@ function useDeleteFoodEntry() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["dailyFoodLog"] });
+      void queryClient.invalidateQueries({ queryKey: ["challenges"] });
+      void queryClient.invalidateQueries({ queryKey: ["rankInfo"] });
     },
   });
 }
@@ -262,6 +280,7 @@ function CameraPreview({
             data-ocid="camera_retake_button"
             type="button"
             variant="outline"
+            className="press"
             onClick={onRetake}
           >
             <RefreshCw className="size-4" aria-hidden="true" />
@@ -272,6 +291,7 @@ function CameraPreview({
             <Button
               data-ocid="camera_capture_button"
               type="button"
+              className="press glow-primary"
               onClick={() => void handleCapture()}
             >
               <Camera className="size-4" aria-hidden="true" />
@@ -281,6 +301,7 @@ function CameraPreview({
               data-ocid="camera_stop_button"
               type="button"
               variant="outline"
+              className="press"
               onClick={() => void stopCamera()}
             >
               <CameraOff className="size-4" aria-hidden="true" />
@@ -291,6 +312,7 @@ function CameraPreview({
                 data-ocid="camera_switch_button"
                 type="button"
                 variant="outline"
+                className="press"
                 onClick={() => void switchCamera()}
               >
                 <RefreshCw className="size-4" aria-hidden="true" />
@@ -302,6 +324,7 @@ function CameraPreview({
           <Button
             data-ocid="camera_start_button"
             type="button"
+            className="press glow-primary"
             disabled={isLoading}
             onClick={() => void startCamera()}
           >
@@ -312,6 +335,58 @@ function CameraPreview({
       </div>
     </div>
   );
+}
+
+async function decodeBarcodeFromImage(
+  imageUrl: string,
+): Promise<string | null> {
+  const img = new Image();
+  img.src = imageUrl;
+  await img.decode();
+
+  const canvas = document.createElement("canvas");
+  const maxDim = 1280;
+  const scale = Math.min(
+    1,
+    maxDim / Math.max(img.naturalWidth, img.naturalHeight),
+  );
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const { data, width, height } = imageData;
+  const luminance = new Uint8ClampedArray(width * height);
+  for (let i = 0, j = 0; i < data.length; i += 4, j += 1) {
+    luminance[j] =
+      (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) | 0;
+  }
+
+  const source = new RGBLuminanceSource(luminance, width, height);
+  const bitmap = new BinaryBitmap(new HybridBinarizer(source));
+  const reader = new MultiFormatReader();
+  const hints = new Map<DecodeHintType, unknown>();
+  hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+    BarcodeFormat.EAN_13,
+    BarcodeFormat.EAN_8,
+    BarcodeFormat.UPC_A,
+    BarcodeFormat.UPC_E,
+    BarcodeFormat.CODE_128,
+    BarcodeFormat.CODE_39,
+    BarcodeFormat.QR_CODE,
+    BarcodeFormat.DATA_MATRIX,
+  ]);
+  hints.set(DecodeHintType.TRY_HARDER, true);
+
+  try {
+    const result = reader.decode(bitmap, hints);
+    const text = result.getText();
+    return text && text.trim().length > 0 ? text.trim() : null;
+  } catch {
+    return null;
+  }
 }
 
 export default function CalorieCamera() {
@@ -346,8 +421,10 @@ export default function CalorieCamera() {
   const [grams, setGrams] = useState(100);
   const [foundProduct, setFoundProduct] = useState<FoodProduct | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [decoding, setDecoding] = useState(false);
   const [editEntry, setEditEntry] = useState<FoodLogEntry | null>(null);
   const [editGrams, setEditGrams] = useState("100");
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   const target = dietTarget.data;
   const log = foodLog.data;
@@ -406,6 +483,40 @@ export default function CalorieCamera() {
     }
   };
 
+  const handleCaptured = (photo: string) => {
+    setCapturedPhoto(photo);
+    setSearchError(null);
+    setFoundProduct(null);
+    setDecoding(true);
+    void (async () => {
+      try {
+        const code = await decodeBarcodeFromImage(photo);
+        if (code) {
+          setBarcode(code);
+          searchMutation.mutate(code, {
+            onSuccess: (result) => {
+              if (result.__kind__ === "ok") {
+                setFoundProduct(result.ok);
+              } else {
+                setSearchError(result.err);
+              }
+            },
+            onError: () => {
+              setSearchError(
+                "Could not reach the food database. Please try again.",
+              );
+            },
+          });
+        } else {
+          // Decoding failed — keep the clear hint asking for manual entry.
+          requestAnimationFrame(() => barcodeInputRef.current?.focus());
+        }
+      } finally {
+        setDecoding(false);
+      }
+    })();
+  };
+
   const caloriesPct =
     target && Number(target.calories) > 0
       ? Math.min(
@@ -418,7 +529,7 @@ export default function CalorieCamera() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <div className="animate-rise flex flex-col gap-1">
         <h1 className="font-display text-2xl font-bold tracking-tight">
           Calorie Camera
         </h1>
@@ -428,9 +539,9 @@ export default function CalorieCamera() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+      <div className="stagger grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Log a meal */}
-        <Card className="lg:col-span-3">
+        <Card className="hover-lift lg:col-span-3">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Camera className="size-5 text-primary" aria-hidden="true" />
@@ -453,7 +564,7 @@ export default function CalorieCamera() {
               videoRef={videoRef}
               canvasRef={canvasRef}
               capturedPhoto={capturedPhoto}
-              onCaptured={setCapturedPhoto}
+              onCaptured={handleCaptured}
               onRetake={() => setCapturedPhoto(null)}
             />
 
@@ -467,6 +578,7 @@ export default function CalorieCamera() {
                   />
                   <Input
                     id="barcode"
+                    ref={barcodeInputRef}
                     data-ocid="barcode_input"
                     value={barcode}
                     onChange={(e) => setBarcode(e.target.value)}
@@ -474,7 +586,7 @@ export default function CalorieCamera() {
                       if (e.key === "Enter") handleSearch();
                     }}
                     placeholder="e.g. 3017620422003"
-                    className="pl-9"
+                    className="pl-9 focus-ring"
                     inputMode="numeric"
                   />
                 </div>
@@ -482,6 +594,7 @@ export default function CalorieCamera() {
                   <Button
                     data-ocid="barcode_search_button"
                     type="button"
+                    className="press glow-primary"
                     onClick={handleSearch}
                     disabled={!barcode.trim() || searchMutation.isPending}
                   >
@@ -492,6 +605,7 @@ export default function CalorieCamera() {
                     data-ocid="barcode_scan_button"
                     type="button"
                     variant="outline"
+                    className="press"
                     onClick={handleScanBarcode}
                   >
                     <Camera className="size-4" aria-hidden="true" />
@@ -499,24 +613,56 @@ export default function CalorieCamera() {
                   </Button>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {isMobile
-                  ? "Use the camera above to photograph the barcode, then type the number."
-                  : "Point the camera at a barcode to photograph it, then type the number to search."}
-              </p>
+
+              {decoding ? (
+                <div
+                  data-ocid="barcode_decoding"
+                  className="animate-scale-in flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-primary"
+                >
+                  <RefreshCw
+                    className="size-4 shrink-0 animate-spin"
+                    aria-hidden="true"
+                  />
+                  <span>Reading barcode from photo…</span>
+                </div>
+              ) : capturedPhoto ? (
+                <div
+                  data-ocid="barcode_captured_hint"
+                  className="animate-scale-in flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-primary"
+                >
+                  <CheckCircle2
+                    className="size-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span>
+                    {barcode
+                      ? `Barcode ${barcode} detected — searching…`
+                      : "Barcode not detected — enter the number below to look it up."}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {isMobile
+                    ? "Use the camera above to photograph the barcode, then type the number."
+                    : "Point the camera at a barcode to photograph it, then type the number to search."}
+                </p>
+              )}
             </div>
 
             {searchMutation.isPending && (
-              <div className="space-y-2 rounded-lg border border-border p-4">
-                <Skeleton className="h-5 w-2/3" />
-                <Skeleton className="h-4 w-1/3" />
+              <div
+                data-ocid="barcode_loading"
+                className="space-y-2 rounded-lg border border-border p-4"
+              >
+                <Skeleton className="animate-shimmer h-5 w-2/3" />
+                <Skeleton className="animate-shimmer h-4 w-1/3" />
               </div>
             )}
 
             {searchError && (
               <div
                 data-ocid="barcode_error"
-                className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                className="animate-scale-in rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
               >
                 {searchError}
               </div>
@@ -525,7 +671,7 @@ export default function CalorieCamera() {
             {foundProduct && (
               <div
                 data-ocid="food_result"
-                className="space-y-4 rounded-lg border border-primary/30 bg-primary/5 p-4"
+                className="animate-scale-in space-y-4 rounded-lg border border-primary/30 bg-primary/5 p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -568,6 +714,7 @@ export default function CalorieCamera() {
                       step={1}
                       value={grams}
                       onChange={(e) => setGrams(Number(e.target.value))}
+                      className="focus-ring"
                     />
                     <p className="text-xs text-muted-foreground">
                       Nutrition is per 100 g — enter the amount you ate in
@@ -579,7 +726,7 @@ export default function CalorieCamera() {
                     type="button"
                     onClick={handleLog}
                     disabled={logMutation.isPending}
-                    className="sm:w-auto"
+                    className="press glow-primary sm:w-auto"
                   >
                     <Plus className="size-4" aria-hidden="true" />
                     Add to log
@@ -591,7 +738,7 @@ export default function CalorieCamera() {
         </Card>
 
         {/* Daily food log */}
-        <Card className="lg:col-span-2">
+        <Card className="hover-lift lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UtensilsCrossed
@@ -610,11 +757,11 @@ export default function CalorieCamera() {
           </CardHeader>
           <CardContent className="space-y-6">
             {foodLog.isLoading || dietTarget.isLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-2 w-full" />
-                <Skeleton className="h-2 w-full" />
-                <Skeleton className="h-2 w-full" />
+              <div data-ocid="food_log_loading" className="space-y-3">
+                <Skeleton className="animate-shimmer h-4 w-full" />
+                <Skeleton className="animate-shimmer h-2 w-full" />
+                <Skeleton className="animate-shimmer h-2 w-full" />
+                <Skeleton className="animate-shimmer h-2 w-full" />
               </div>
             ) : (
               <div className="space-y-4">
@@ -656,10 +803,13 @@ export default function CalorieCamera() {
               </h2>
 
               {foodLog.isLoading ? (
-                <div className="space-y-2">
+                <div data-ocid="food_log_items_loading" className="space-y-2">
                   {Array.from({ length: 3 }, (_, i) => `skeleton-${i}`).map(
                     (id) => (
-                      <Skeleton key={id} className="h-16 w-full" />
+                      <Skeleton
+                        key={id}
+                        className="animate-shimmer h-16 w-full"
+                      />
                     ),
                   )}
                 </div>
@@ -674,7 +824,7 @@ export default function CalorieCamera() {
                       <li
                         key={entry.id.toString()}
                         data-ocid={`food_log_item.${log.entries.indexOf(entry) + 1}`}
-                        className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2.5"
+                        className="hover-lift flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2.5"
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">
@@ -714,6 +864,7 @@ export default function CalorieCamera() {
                             type="button"
                             variant="ghost"
                             size="icon"
+                            className="press"
                             aria-label={`Edit ${entry.product.name}`}
                             onClick={() => openEdit(entry)}
                           >
@@ -724,6 +875,7 @@ export default function CalorieCamera() {
                             type="button"
                             variant="ghost"
                             size="icon"
+                            className="press"
                             aria-label={`Delete ${entry.product.name}`}
                             onClick={() => deleteMutation.mutate(entry.id)}
                           >
@@ -739,12 +891,14 @@ export default function CalorieCamera() {
                   data-ocid="food_log_empty"
                   className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border px-4 py-8 text-center"
                 >
-                  <UtensilsCrossed
-                    className="size-8 text-muted-foreground"
-                    aria-hidden="true"
-                  />
+                  <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+                    <UtensilsCrossed
+                      className="size-6 text-primary"
+                      aria-hidden="true"
+                    />
+                  </div>
                   <p className="text-sm font-medium">No meals logged yet</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="max-w-[220px] text-xs text-muted-foreground">
                     Capture a meal and search its barcode to get started.
                   </p>
                 </div>
@@ -778,6 +932,7 @@ export default function CalorieCamera() {
               step={1}
               value={editGrams}
               onChange={(e) => setEditGrams(e.target.value)}
+              className="focus-ring"
             />
             <p className="text-xs text-muted-foreground">
               Nutrition is per 100 g — enter the amount you ate in grams.
@@ -788,6 +943,7 @@ export default function CalorieCamera() {
               data-ocid="edit_cancel_button"
               type="button"
               variant="outline"
+              className="press"
               onClick={() => setEditEntry(null)}
             >
               Cancel
@@ -795,6 +951,7 @@ export default function CalorieCamera() {
             <Button
               data-ocid="edit_save_button"
               type="button"
+              className="press glow-primary"
               onClick={handleSaveEdit}
               disabled={updateMutation.isPending}
             >

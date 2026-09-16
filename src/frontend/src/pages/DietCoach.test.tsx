@@ -55,13 +55,11 @@ describe("DietCoach", () => {
     renderWithProviders(<DietCoach />, mockActor);
 
     await waitFor(() => {
-      expect(
-        screen.getByLabelText("Message your diet coach"),
-      ).toBeInTheDocument();
+      expect(screen.getByLabelText("Message your coach")).toBeInTheDocument();
     });
 
     await user.type(
-      screen.getByLabelText("Message your diet coach"),
+      screen.getByLabelText("Message your coach"),
       "What should I eat for breakfast?",
     );
     await user.click(screen.getByLabelText("Send message"));
@@ -81,5 +79,37 @@ describe("DietCoach", () => {
         ),
       ).toBeInTheDocument();
     });
+  });
+
+  it("shows a clear error and retries the coach call when it fails", async () => {
+    mockActor.chat
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockResolvedValueOnce({ reply: "Retried successfully." });
+    const user = userEvent.setup();
+    renderWithProviders(<DietCoach />, mockActor);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Message your coach")).toBeInTheDocument();
+    });
+
+    await user.type(
+      screen.getByLabelText("Message your coach"),
+      "What should I eat?",
+    );
+    await user.click(screen.getByLabelText("Send message"));
+
+    // The failed call surfaces a clear error and a retry action.
+    await waitFor(() => {
+      expect(screen.getByText("Network error")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Couldn't reach the coach.")).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole("button", { name: /retry/i })[0]);
+
+    // Retrying re-sends the same message and shows the new reply.
+    await waitFor(() => {
+      expect(screen.getByText("Retried successfully.")).toBeInTheDocument();
+    });
+    expect(mockActor.chat).toHaveBeenCalledTimes(2);
   });
 });

@@ -74,7 +74,10 @@ function DailyTargetCard({
   ];
 
   return (
-    <Card data-ocid="diet_target_card" className="bg-glow-primary">
+    <Card
+      data-ocid="diet_target_card"
+      className="hover-lift bg-glow-primary focus-ring"
+    >
       <CardHeader>
         <div className="flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
@@ -92,7 +95,7 @@ function DailyTargetCard({
               Calories
             </span>
             {loading ? (
-              <Skeleton className="mt-1 h-6 w-20" />
+              <Skeleton className="mt-1 h-6 w-20 animate-shimmer" />
             ) : (
               <span className="font-display text-2xl font-bold text-primary">
                 {calories?.toString() ?? "—"}
@@ -107,7 +110,7 @@ function DailyTargetCard({
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{row.label}</span>
                 {loading ? (
-                  <Skeleton className="h-4 w-12" />
+                  <Skeleton className="h-4 w-12 animate-shimmer" />
                 ) : (
                   <span className="font-medium">
                     {row.value?.toString() ?? "—"}
@@ -118,7 +121,7 @@ function DailyTargetCard({
                 )}
               </div>
               {loading ? (
-                <Skeleton className="h-2 w-full" />
+                <Skeleton className="h-2 w-full animate-shimmer" />
               ) : (
                 <div className="h-2 w-full overflow-hidden rounded-full bg-primary/15">
                   <div
@@ -149,7 +152,7 @@ function ProfileCard({ profile }: { profile: Profile | null }) {
   ];
 
   return (
-    <Card data-ocid="profile_card">
+    <Card data-ocid="profile_card" className="hover-lift focus-ring">
       <CardHeader>
         <div className="flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
@@ -215,7 +218,7 @@ export default function DietCoach() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
+      <div className="flex animate-rise flex-col gap-2">
         <div className="flex items-center gap-3">
           <span className="flex size-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
             <Salad className="size-6" aria-hidden="true" />
@@ -232,17 +235,19 @@ export default function DietCoach() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <ChatWindow
-          onSend={handleSend}
-          suggestedPrompts={SUGGESTED_PROMPTS}
-          title="Diet Coach"
-          subtitle="Personalized · listens to you"
-          emptyTitle="How can I help you eat better today?"
-          emptyDescription="Ask about meals, cravings, portion sizes, or a full day of eating. The coach tailors every answer to your body and goals."
-          placeholder="Ask your diet coach anything…"
-        />
+        <div className="animate-slide-up">
+          <ChatWindow
+            onSend={handleSend}
+            suggestedPrompts={SUGGESTED_PROMPTS}
+            title="Diet Coach"
+            subtitle="Personalized · listens to you"
+            emptyTitle="How can I help you eat better today?"
+            emptyDescription="Ask about meals, cravings, portion sizes, or a full day of eating. The coach tailors every answer to your body and goals."
+            placeholder="Ask your diet coach anything…"
+          />
+        </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="stagger flex flex-col gap-6">
           <DailyTargetCard
             calories={targetQuery.data?.calories}
             protein={targetQuery.data?.protein}

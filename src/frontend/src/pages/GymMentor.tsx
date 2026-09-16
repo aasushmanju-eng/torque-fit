@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   CircleDot,
   Dumbbell,
   Loader2,
@@ -122,7 +123,10 @@ function MessageBubble({
   return (
     <div
       data-ocid={`chat_message_${isUser ? "user" : "assistant"}`}
-      className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
+      className={cn(
+        "flex w-full animate-rise",
+        isUser ? "justify-end" : "justify-start",
+      )}
     >
       <div
         className={cn(
@@ -134,7 +138,7 @@ function MessageBubble({
       >
         <p>{message.content}</p>
         {message.error && (
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex items-center gap-2 border-t border-destructive/30 pt-2">
             <span className="text-xs text-destructive">
               Couldn&apos;t reach the coach.
             </span>
@@ -143,6 +147,7 @@ function MessageBubble({
               variant="outline"
               size="sm"
               data-ocid="chat_retry_button"
+              className="focus-ring press"
               onClick={() => onRetry(message.id, message.content)}
             >
               <RotateCcw className="size-3.5" aria-hidden="true" />
@@ -157,7 +162,10 @@ function MessageBubble({
 
 function TypingIndicator() {
   return (
-    <div className="flex w-full justify-start" data-ocid="chat_loading_state">
+    <div
+      className="flex w-full animate-rise justify-start"
+      data-ocid="chat_loading_state"
+    >
       <div className="flex items-center gap-2 rounded-2xl rounded-bl-sm border border-border bg-card px-4 py-3">
         <Loader2
           className="size-4 animate-spin text-primary"
@@ -175,6 +183,7 @@ export default function GymMentor() {
   const [activeCoach, setActiveCoach] = useState<CoachType>(CoachType.gym);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [chatError, setChatError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingIdRef = useRef<string | null>(null);
 
@@ -205,6 +214,7 @@ export default function GymMentor() {
     if (!content || chat.isPending) return;
     const id = crypto.randomUUID();
     pendingIdRef.current = id;
+    setChatError(null);
     setMessages((prev) => [...prev, { id, role: "user", content }]);
     setInput("");
     chat.mutate(
@@ -217,10 +227,15 @@ export default function GymMentor() {
             { id: crypto.randomUUID(), role: "assistant", content: res.reply },
           ]);
         },
-        onError: () => {
+        onError: (err) => {
           pendingIdRef.current = null;
           setMessages((prev) =>
             prev.map((m) => (m.id === id ? { ...m, error: true } : m)),
+          );
+          setChatError(
+            err instanceof Error
+              ? err.message
+              : "The coach couldn't respond right now. Check your connection and try again.",
           );
         },
       },
@@ -232,6 +247,7 @@ export default function GymMentor() {
       prev.map((m) => (m.id === id ? { ...m, error: false } : m)),
     );
     pendingIdRef.current = id;
+    setChatError(null);
     chat.mutate(
       { coach: activeCoach, message: content, profile: buildProfile() },
       {
@@ -242,10 +258,15 @@ export default function GymMentor() {
             { id: crypto.randomUUID(), role: "assistant", content: res.reply },
           ]);
         },
-        onError: () => {
+        onError: (err) => {
           pendingIdRef.current = null;
           setMessages((prev) =>
             prev.map((m) => (m.id === id ? { ...m, error: true } : m)),
+          );
+          setChatError(
+            err instanceof Error
+              ? err.message
+              : "The coach couldn't respond right now. Check your connection and try again.",
           );
         },
       },
@@ -256,7 +277,7 @@ export default function GymMentor() {
 
   return (
     <div className="flex h-[calc(100vh-10rem)] flex-col gap-4">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex animate-rise items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight">
             AI Gym Mentor &amp; Sports
@@ -289,10 +310,10 @@ export default function GymMentor() {
               data-ocid={`coach_${coach.type}`}
               onClick={() => setActiveCoach(coach.type)}
               className={cn(
-                "flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-smooth",
+                "flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-fast focus-ring press",
                 active
                   ? "border-primary/40 bg-primary/15 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  : "border-border bg-card text-muted-foreground hover:-translate-y-0.5 hover:bg-accent hover:text-accent-foreground hover:shadow-[0_6px_16px_-8px_oklch(0.66_0.2_240/0.4)]",
               )}
             >
               <Icon className="size-4" aria-hidden="true" />
@@ -313,10 +334,10 @@ export default function GymMentor() {
               className="flex h-full flex-col items-center justify-center gap-4 text-center"
               data-ocid="chat_empty_state"
             >
-              <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+              <span className="flex size-14 animate-scale-in items-center justify-center rounded-2xl bg-primary/15 text-primary">
                 <ActiveIcon className="size-7" aria-hidden="true" />
               </span>
-              <div>
+              <div className="animate-rise">
                 <h2 className="font-display text-lg font-semibold">
                   {activeMeta.label}
                 </h2>
@@ -332,7 +353,7 @@ export default function GymMentor() {
                     type="button"
                     data-ocid="chat_suggestion"
                     onClick={() => sendMessage(prompt)}
-                    className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-smooth hover:border-primary/40 hover:text-primary"
+                    className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-fast hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary hover:shadow-[0_6px_16px_-8px_oklch(0.66_0.2_240/0.4)] focus-ring press"
                   >
                     {prompt}
                   </button>
@@ -349,15 +370,35 @@ export default function GymMentor() {
           )}
         </div>
 
-        <div className="border-t border-border p-3">
-          {chat.isError && (
-            <p
-              className="mb-2 text-xs text-destructive"
+        <div className="border-t border-border bg-background/40 p-3">
+          {chatError && (
+            <div
               data-ocid="chat_error_state"
+              className="mb-2 flex items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
             >
-              Something went wrong reaching the coach. Check your connection and
-              try again.
-            </p>
+              <span className="flex items-center gap-2">
+                <AlertTriangle
+                  className="size-3.5 shrink-0"
+                  aria-hidden="true"
+                />
+                {chatError}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-ocid="chat_retry_button"
+                className="focus-ring press"
+                disabled={chat.isPending}
+                onClick={() => {
+                  const failed = messages.find((m) => m.error);
+                  if (failed) retry(failed.id, failed.content);
+                }}
+              >
+                <RotateCcw className="size-3.5" aria-hidden="true" />
+                Retry
+              </Button>
+            </div>
           )}
           <form
             onSubmit={(e) => {
@@ -377,7 +418,7 @@ export default function GymMentor() {
               }}
               placeholder={`Message ${activeMeta.label}…`}
               rows={1}
-              className="min-h-[44px] flex-1 resize-none"
+              className="min-h-[44px] flex-1 resize-none focus-ring"
               data-ocid="chat_input"
               aria-label={`Message ${activeMeta.label}`}
             />
@@ -385,6 +426,7 @@ export default function GymMentor() {
               type="submit"
               size="icon"
               data-ocid="chat_send_button"
+              className="focus-ring press"
               disabled={!input.trim() || chat.isPending}
               aria-label="Send message"
             >

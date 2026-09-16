@@ -1,5 +1,8 @@
 import {
   type Challenge,
+  type ChallengeProof,
+  type ChatMessage,
+  type Conversation,
   type DailyFoodLog,
   type DietTarget,
   type Exercise,
@@ -10,6 +13,7 @@ import {
   type Reward,
   type SearchResult,
   type Workout,
+  type WorkoutReminder,
   createActor,
 } from "@/backend";
 import { useActor } from "@caffeineai/core-infrastructure";
@@ -216,6 +220,168 @@ export function useLogWorkout() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["workouts"] });
+      // Workouts advance the 7-day streak and workout challenges, so refresh
+      // challenges, rank, and rewards so progress reflects immediately.
+      void queryClient.invalidateQueries({ queryKey: ["challenges"] });
+      void queryClient.invalidateQueries({ queryKey: ["rankInfo"] });
+      void queryClient.invalidateQueries({ queryKey: ["rewards"] });
+    },
+  });
+}
+
+/** Fetch the caller's conversations with friends. */
+export function useConversations() {
+  const { actor, isFetching } = useActor(createActor);
+  return useQuery({
+    queryKey: ["conversations"],
+    queryFn: async (): Promise<Conversation[]> => {
+      if (!actor) return [];
+      return actor.getConversations();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+/** Fetch the message history with a specific friend. */
+export function useConversation(friend: Principal | null) {
+  const { actor, isFetching } = useActor(createActor);
+  return useQuery({
+    queryKey: ["conversation", friend?.toString() ?? "none"],
+    queryFn: async (): Promise<ChatMessage[]> => {
+      if (!actor || !friend) return [];
+      return actor.getConversation(friend);
+    },
+    enabled: !!actor && !isFetching && !!friend,
+  });
+}
+
+/** Send a message to a friend, then refresh the conversation. */
+export function useSendMessage() {
+  const { actor } = useActor(createActor);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ to, text }: { to: Principal; text: string }) => {
+      if (!actor) throw new Error("Backend is not ready");
+      return actor.sendMessage(to, text);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      void queryClient.invalidateQueries({ queryKey: ["conversation"] });
+    },
+  });
+}
+
+/** Fetch the caller's workout reminders. */
+export function useWorkoutReminders() {
+  const { actor, isFetching } = useActor(createActor);
+  return useQuery({
+    queryKey: ["workoutReminders"],
+    queryFn: async (): Promise<WorkoutReminder[]> => {
+      if (!actor) return [];
+      return actor.listWorkoutReminders();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+/** Add a workout reminder, then refresh the reminder list. */
+export function useAddWorkoutReminder() {
+  const { actor } = useActor(createActor);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      days,
+      timeMinutes,
+      title,
+    }: {
+      days: bigint[];
+      timeMinutes: bigint;
+      title: string;
+    }) => {
+      if (!actor) throw new Error("Backend is not ready");
+      return actor.addWorkoutReminder(days, timeMinutes, title);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["workoutReminders"] });
+    },
+  });
+}
+
+/** Update a workout reminder, then refresh the reminder list. */
+export function useUpdateWorkoutReminder() {
+  const { actor } = useActor(createActor);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      days,
+      timeMinutes,
+      title,
+    }: {
+      id: bigint;
+      days: bigint[];
+      timeMinutes: bigint;
+      title: string;
+    }) => {
+      if (!actor) throw new Error("Backend is not ready");
+      return actor.updateWorkoutReminder(id, days, timeMinutes, title);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["workoutReminders"] });
+    },
+  });
+}
+
+/** Remove a workout reminder, then refresh the reminder list. */
+export function useRemoveWorkoutReminder() {
+  const { actor } = useActor(createActor);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error("Backend is not ready");
+      return actor.removeWorkoutReminder(id);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["workoutReminders"] });
+    },
+  });
+}
+
+/** Fetch the submitted proofs for a challenge. */
+export function useChallengeProofs(challengeId: bigint | null) {
+  const { actor, isFetching } = useActor(createActor);
+  return useQuery({
+    queryKey: ["challengeProofs", challengeId?.toString() ?? "none"],
+    queryFn: async (): Promise<ChallengeProof[]> => {
+      if (!actor || challengeId === null) return [];
+      return actor.getChallengeProofs(challengeId);
+    },
+    enabled: !!actor && !isFetching && challengeId !== null,
+  });
+}
+
+/** Submit proof for a challenge, then refresh the proofs. */
+export function useSubmitChallengeProof() {
+  const { actor } = useActor(createActor);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      challengeId,
+      proofRef,
+    }: {
+      challengeId: bigint;
+      proofRef: string;
+    }) => {
+      if (!actor) throw new Error("Backend is not ready");
+      return actor.submitChallengeProof(challengeId, proofRef);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["challengeProofs"] });
+      // A submitted proof can complete a challenge and award a badge + XP, so
+      // refresh challenges, rewards, and rank so the UI reflects it live.
+      void queryClient.invalidateQueries({ queryKey: ["challenges"] });
+      void queryClient.invalidateQueries({ queryKey: ["rewards"] });
+      void queryClient.invalidateQueries({ queryKey: ["rankInfo"] });
     },
   });
 }

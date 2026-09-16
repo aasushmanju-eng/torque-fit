@@ -1,14 +1,22 @@
+import { CookieConsent } from "@/components/CookieConsent";
 import { Layout } from "@/components/Layout";
+import { LegalLayout } from "@/components/LegalLayout";
 import { SignInScreen } from "@/components/SignInScreen";
 import { useProfile } from "@/hooks/useQueries";
 import CalorieCamera from "@/pages/CalorieCamera";
 import Challenges from "@/pages/Challenges";
+import CookiesPage from "@/pages/CookiesPage";
 import Dashboard from "@/pages/Dashboard";
 import DietCoach from "@/pages/DietCoach";
+import DisclaimerPage from "@/pages/DisclaimerPage";
 import Friends from "@/pages/Friends";
 import GymMentor from "@/pages/GymMentor";
+import IpPage from "@/pages/IpPage";
+import PricingPage from "@/pages/PricingPage";
+import PrivacyPage from "@/pages/PrivacyPage";
 import Profile from "@/pages/Profile";
 import Rank from "@/pages/Rank";
+import TermsPage from "@/pages/TermsPage";
 import Workouts from "@/pages/Workouts";
 import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import {
@@ -21,7 +29,12 @@ import {
 } from "@tanstack/react-router";
 
 const rootRoute = createRootRoute({
-  component: () => <Layout />,
+  component: () => (
+    <>
+      <Layout />
+      <CookieConsent />
+    </>
+  ),
 });
 
 /**
@@ -101,6 +114,42 @@ const rankRoute = createRoute({
   component: Rank,
 });
 
+const privacyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/privacy",
+  component: PrivacyPage,
+});
+
+const termsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/terms",
+  component: TermsPage,
+});
+
+const disclaimerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/disclaimer",
+  component: DisclaimerPage,
+});
+
+const cookiesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/cookies",
+  component: CookiesPage,
+});
+
+const pricingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/pricing",
+  component: PricingPage,
+});
+
+const ipRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/ip",
+  component: IpPage,
+});
+
 const routeTree = rootRoute.addChildren([
   dashboardRoute,
   dietCoachRoute,
@@ -111,6 +160,12 @@ const routeTree = rootRoute.addChildren([
   friendsRoute,
   profileRoute,
   rankRoute,
+  privacyRoute,
+  termsRoute,
+  disclaimerRoute,
+  cookiesRoute,
+  pricingRoute,
+  ipRoute,
 ]);
 
 const router = createRouter({ routeTree });
@@ -120,6 +175,90 @@ declare module "@tanstack/react-router" {
     router: typeof router;
   }
 }
+
+/**
+ * Standalone router for the legal content pages. It is rendered OUTSIDE the
+ * auth gate so the legal links on the sign-in screen actually navigate to
+ * their pages before the user signs in. The legal pages render inside a
+ * dedicated LegalLayout (same design language, no authenticated sidebar), and
+ * the "/" route shows the sign-in screen so the "Back to dashboard" link in
+ * LegalPage resolves pre-login.
+ */
+const legalRootRoute = createRootRoute({
+  component: () => <Outlet />,
+});
+
+const legalLayoutRoute = createRoute({
+  getParentRoute: () => legalRootRoute,
+  id: "legal-layout",
+  component: LegalLayout,
+});
+
+const legalPrivacyRoute = createRoute({
+  getParentRoute: () => legalLayoutRoute,
+  path: "/privacy",
+  component: PrivacyPage,
+});
+
+const legalTermsRoute = createRoute({
+  getParentRoute: () => legalLayoutRoute,
+  path: "/terms",
+  component: TermsPage,
+});
+
+const legalDisclaimerRoute = createRoute({
+  getParentRoute: () => legalLayoutRoute,
+  path: "/disclaimer",
+  component: DisclaimerPage,
+});
+
+const legalCookiesRoute = createRoute({
+  getParentRoute: () => legalLayoutRoute,
+  path: "/cookies",
+  component: CookiesPage,
+});
+
+const legalPricingRoute = createRoute({
+  getParentRoute: () => legalLayoutRoute,
+  path: "/pricing",
+  component: PricingPage,
+});
+
+const legalIpRoute = createRoute({
+  getParentRoute: () => legalLayoutRoute,
+  path: "/ip",
+  component: IpPage,
+});
+
+const legalSignInRoute = createRoute({
+  getParentRoute: () => legalRootRoute,
+  path: "/",
+  component: SignInScreen,
+});
+
+const legalRouteTree = legalRootRoute.addChildren([
+  legalLayoutRoute.addChildren([
+    legalPrivacyRoute,
+    legalTermsRoute,
+    legalDisclaimerRoute,
+    legalCookiesRoute,
+    legalPricingRoute,
+    legalIpRoute,
+  ]),
+  legalSignInRoute,
+]);
+
+const legalRouter = createRouter({ routeTree: legalRouteTree });
+
+/** Paths that must be reachable before sign-in. */
+const LEGAL_PATHS = [
+  "/privacy",
+  "/terms",
+  "/disclaimer",
+  "/cookies",
+  "/pricing",
+  "/ip",
+];
 
 function LoadingScreen() {
   return (
@@ -142,6 +281,10 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
+    const pathname = window.location.pathname;
+    if (LEGAL_PATHS.includes(pathname)) {
+      return <RouterProvider router={legalRouter} />;
+    }
     return <SignInScreen />;
   }
 
